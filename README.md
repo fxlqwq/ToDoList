@@ -1,16 +1,32 @@
-# todo_list_app
+# ToDoList-Notice-Flutter
 
-A new Flutter project.
+一个功能完整的Flutter待办事项应用，支持通知提醒功能。
 
-## Getting Started
+## 功能特性
 
-This project is a starting point for a Flutter application.
+- ✅ 任务创建和编辑
+- 📝 任务分类（个人、工作、健康、购物、学习、其他）
+- ⭐ 优先级设置（高、中、低）
+- 📅 截止日期设置
+- 🔔 提醒通知功能
+- 🏷️ 标签系统
+- 📊 任务统计
+- 🎨 美观的用户界面
 
-A few resources to get you started if this is your first Flutter project:
+## 技术栈
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Flutter 3.x
+- Provider (状态管理)
+- SQLite (本地数据库)
+- Flutter Local Notifications (通知)
+- Font Awesome Flutter (图标)
+- Intl (国际化)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 开始使用
+
+这是一个Flutter应用项目。如果这是您的第一个Flutter项目，以下资源可以帮助您入门：
+
+- [Lab: 编写您的第一个Flutter应用](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: 有用的Flutter示例](https://docs.flutter.dev/cookbook)
+
+有关Flutter开发的帮助，请查看[在线文档](https://docs.flutter.dev/)，其中提供教程、示例、移动开发指导和完整的API参考。
