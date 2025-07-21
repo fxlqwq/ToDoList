@@ -1,32 +1,432 @@
 # ToDoList-Notice-Flutter
 
-一个功能完整的Flutter待办事项应用，支持通知提醒功能。
+一个功能完整的Flutter待办事项应用，支持智能通知提醒和自动权限管理。
 
-## 功能特性
+## 📱 项目简介
 
-- ✅ 任务创建和编辑
-- 📝 任务分类（个人、工作、健康、购物、学习、其他）
-- ⭐ 优先级设置（高、中、低）
-- 📅 截止日期设置
-- 🔔 提醒通知功能
-- 🏷️ 标签系统
-- 📊 任务统计
-- 🎨 美观的用户界面
+这是一个现代化的Flutter待办事项管理应用，采用Material Design设计语言，提供直观的用户界面和强大的功能。应用支持任务分类、优先级管理、智能通知提醒、后台运行优化等功能，帮助用户高效管理日常任务。
 
-## 技术栈
+## ✨ 功能特性
 
-- Flutter 3.x
-- Provider (状态管理)
-- SQLite (本地数据库)
-- Flutter Local Notifications (通知)
-- Font Awesome Flutter (图标)
-- Intl (国际化)
+### 📝 任务管理
+- **任务创建和编辑**：快速创建任务，支持标题、描述、截止日期等信息
+- **智能分类系统**：支持6种预设分类（个人、工作、健康、购物、学习、其他）
+- **优先级设置**：三级优先级系统（高、中、低）
+- **任务状态管理**：完成、删除、编辑任务状态
 
-## 开始使用
+### 🔔 智能通知系统
+- **精准时间提醒**：支持精确到分钟的提醒设置
+- **后台通知保障**：即使应用关闭也能准时提醒
+- **电池优化管理**：自动请求电池优化白名单权限
+- **多重调度策略**：使用三种备用通知调度方案确保可靠性
+- **系统级权限申请**：自动弹出系统权限对话框
+- **锁屏通知显示**：支持在锁屏界面显示提醒
+- **自定义通知样式**：使用应用图标和个性化消息
 
-这是一个Flutter应用项目。如果这是您的第一个Flutter项目，以下资源可以帮助您入门：
+### 🚀 首次使用体验
+- **使用指南**：首次启动时显示5步使用教程
+- **智能权限申请**：一次性申请所有必要权限
+- **偏好设置管理**：记住用户选择，避免重复提示
+- **平滑引导流程**：从使用指南到权限申请的无缝体验
 
-- [Lab: 编写您的第一个Flutter应用](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: 有用的Flutter示例](https://docs.flutter.dev/cookbook)
+### 🎨 用户界面
+- **现代化设计**：Material Design 3.0设计语言
+- **渐变按钮**：美观的添加任务按钮，支持动画效果
+- **响应式布局**：适配不同屏幕尺寸
+- **主题系统**：统一的颜色主题和样式
+- **流畅动画**：丰富的交互动画效果
+- **菜单增强**：支持重新查看使用指南和应用信息
 
-有关Flutter开发的帮助，请查看[在线文档](https://docs.flutter.dev/)，其中提供教程、示例、移动开发指导和完整的API参考。
+### 📊 数据管理
+- **本地数据库**：使用SQLite进行数据持久化
+- **实时数据同步**：基于Provider的状态管理
+- **数据安全性**：完善的错误处理和数据验证
+- **偏好设置存储**：使用SharedPreferences管理用户偏好
+- **任务统计**：查看任务完成情况和统计信息
+
+### 🔍 分类和筛选
+- **分类筛选**：按类别快速筛选任务
+- **优先级筛选**：按优先级查看重要任务
+- **状态筛选**：查看完成/未完成任务
+- **搜索功能**：快速找到特定任务
+
+## 🛠️ 技术栈
+
+### 前端框架
+- **Flutter 3.24.5**：跨平台移动应用开发框架
+- **Dart**：编程语言
+
+### 状态管理
+- **Provider 6.x**：轻量级状态管理解决方案
+- **ChangeNotifier**：数据变更通知机制
+
+### 数据存储
+- **SQLite**：本地关系型数据库
+- **sqflite 2.4.1**：Flutter SQLite插件
+- **SharedPreferences**：用户偏好设置存储
+- **shared_preferences 2.2.2**：偏好设置插件
+
+### 通知系统
+- **flutter_local_notifications 17.2.4**：本地通知插件
+- **timezone 0.9.4**：时区处理
+
+### 权限管理
+- **permission_handler 11.3.1**：权限请求和管理
+- **电池优化权限**：Android原生权限处理
+- **通知权限**：系统级权限申请
+
+### UI组件
+- **Material Design**：Google Material设计组件
+- **font_awesome_flutter**：Font Awesome图标库
+- **Intl**：国际化支持
+
+### 开发工具
+- **ProGuard**：Release版本代码混淆
+- **Gradle**：Android构建系统
+
+## 📦 项目结构
+
+```
+lib/
+├── main.dart                 # 应用入口，全局错误处理
+├── models/
+│   └── todo.dart            # 任务数据模型，包含验证逻辑
+├── screens/
+│   ├── splash_screen.dart       # 启动画面
+│   ├── home_screen.dart         # 主页面，任务列表展示
+│   ├── add_edit_todo_screen.dart # 添加/编辑任务页面
+│   ├── notification_settings_screen.dart # 通知设置页面
+│   └── preferences_test_screen.dart # 偏好设置调试页面（仅调试模式）
+├── services/
+│   ├── database_service.dart    # 数据库服务，SQLite操作
+│   ├── notification_service.dart # 通知服务，包含错误处理
+│   ├── notification_helper.dart  # 通知辅助类
+│   ├── battery_optimization_service.dart # 电池优化权限管理
+│   ├── preferences_service.dart # 偏好设置服务
+│   └── todo_provider.dart       # 任务数据提供者，状态管理
+├── utils/
+│   └── app_theme.dart          # 应用主题配置
+└── widgets/
+    ├── todo_card.dart           # 任务卡片组件
+    ├── category_filter_chip.dart # 分类筛选组件
+    ├── priority_filter_chip.dart # 优先级筛选组件
+    ├── stats_card.dart          # 统计卡片组件
+    ├── notification_permission_dialog.dart # 权限请求对话框
+    └── usage_guide_dialog.dart  # 使用指南对话框
+
+android/
+├── app/
+│   ├── src/main/
+│   │   ├── kotlin/com/fxl/todo_list_app/
+│   │   │   └── MainActivity.kt      # Android原生代码，电池优化权限处理
+│   │   ├── res/
+│   │   │   ├── mipmap-*/ic_launcher.png # 应用图标（各分辨率）
+│   │   │   └── drawable/
+│   │   │       └── ic_notification.xml   # 通知图标
+│   │   └── AndroidManifest.xml          # Android权限配置
+│   ├── build.gradle                     # 应用级构建配置
+│   └── proguard-rules.pro              # ProGuard混淆规则
+└── build.gradle                        # 项目级构建配置
+```
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Flutter SDK 3.24.5 或更高版本
+- Dart SDK 3.0 或更高版本
+- Android Studio 或 VS Code
+- Android SDK (用于Android开发)
+- JDK 8 或更高版本
+
+### 安装步骤
+
+1. **克隆项目**
+   ```bash
+   git clone https://github.com/fxlqwq/ToDoList-Notice-Flutter.git
+   cd ToDoList-Notice-Flutter
+   ```
+
+2. **安装依赖**
+   ```bash
+   flutter pub get
+   ```
+
+3. **检查环境**
+   ```bash
+   flutter doctor
+   ```
+
+4. **运行应用**
+   
+   **Debug模式**：
+   ```bash
+   flutter run
+   ```
+   
+   **Release模式**：
+   ```bash
+   flutter run --release
+   ```
+
+### 构建发布版本
+
+**构建APK**：
+```bash
+flutter build apk --release
+```
+
+**构建AAB (推荐用于Google Play)**：
+```bash
+flutter build appbundle --release
+```
+
+## ⚙️ 配置说明
+
+### Android权限配置
+
+应用需要以下权限（已在 `AndroidManifest.xml` 中配置）：
+
+```xml
+<!-- 通知权限 -->
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<!-- 精确闹钟权限 -->
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+<!-- 电池优化相关权限 -->
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+<uses-permission android:name="android.permission.WAKE_LOCK" />
+<!-- 后台运行权限 -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+<!-- 设备启动完成权限 -->
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<!-- 振动权限 -->
+<uses-permission android:name="android.permission.VIBRATE" />
+<!-- 网络状态权限 -->
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+```
+
+### ProGuard配置
+
+为确保Release版本正常运行，项目已配置ProGuard规则：
+
+```proguard
+# 保护Flutter本地通知插件
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keep class com.dexterous.flutterlocalnotifications.models.** { *; }
+
+# 保护泛型信息
+-keepattributes Signature
+-keepattributes InnerClasses
+-keepattributes EnclosingMethod
+```
+
+## 🔧 核心功能实现
+
+### 🚀 首次启动流程
+1. **使用指南展示**：5步交互式教程介绍应用功能
+2. **权限智能申请**：自动请求通知、精确闹钟和电池优化权限
+3. **系统对话框**：弹出原生Android电池优化权限对话框
+4. **偏好记录**：使用SharedPreferences记录用户选择
+
+### 🔔 通知系统设计
+
+#### 权限管理策略
+- **BatteryOptimizationService**：专门处理电池优化权限
+- **Android原生集成**：通过MainActivity.kt处理系统级权限
+- **多重权限申请**：通知权限 + 精确闹钟权限 + 电池优化权限
+
+#### 调度策略
+1. **主要方法**：`AndroidScheduleMode.exactAllowWhileIdle` - 允许在设备休眠时唤醒
+2. **备用方法**：`AndroidScheduleMode.alarmClock` - 闹钟级别的高优先级调度  
+3. **最终备用**：`AndroidScheduleMode.exact` - 普通精确调度
+
+#### 通知增强功能
+- **锁屏显示**：支持在锁屏界面显示通知
+- **全屏意图**：重要通知可全屏显示
+- **声音振动**：自定义通知声音和振动模式
+- **图标样式**：使用应用图标和自定义样式
+
+### 💾 数据管理架构
+
+#### 数据库设计
+```sql
+CREATE TABLE todos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  priority TEXT NOT NULL,
+  due_date TEXT,
+  reminder_date TEXT,
+  is_completed INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+```
+
+#### 偏好设置管理
+- `first_launch`：是否首次启动
+- `notification_permission_asked`：是否已请求通知权限
+- `usage_guide_shown`：是否已显示使用指南
+- `notification_enabled`：通知是否已启用
+- `last_used_date`：最后使用日期
+
+### 🎯 状态管理架构
+- **Provider模式**：全局状态管理
+- **ChangeNotifier**：数据变更通知机制
+- **异步处理**：完善的异步操作错误处理
+- **数据同步**：实时数据持久化
+
+## 🌟 v1.5.0 重大更新
+
+### ✨ 新增功能
+- 🎓 **首次使用指南**：5步交互式教程
+- 🔋 **电池优化管理**：自动申请后台运行权限
+- 🔐 **智能权限申请**：一次性申请所有必要权限
+- 💾 **偏好设置系统**：记住用户选择，避免重复提示
+- 📱 **原生权限集成**：Android原生电池优化权限处理
+
+### 🚀 性能优化
+- 📈 **通知可靠性**：三重备用调度策略
+- 🛡️ **错误处理**：全面的异常捕获和恢复机制
+- ⚡ **启动优化**：智能的首次启动流程
+- 🔄 **状态管理**：优化的Provider状态管理
+
+### 🎨 用户体验改进
+- 🎯 **引导流程**：从使用指南到权限申请的无缝体验
+- 🔔 **权限提示**：友好的权限说明和引导
+- 📋 **菜单增强**：支持重新查看使用指南
+- 🐛 **调试支持**：开发模式下的偏好设置调试页面
+
+## 🔧 核心功能实现（历史版本）
+
+### 通知系统设计（v1.4.x）
+
+1. **时区处理**：使用 `timezone` 包处理不同时区的时间转换
+2. **权限管理**：动态请求通知和精确闹钟权限
+3. **错误恢复**：多层错误捕获和恢复机制
+4. **调度模式**：支持 `exactAllowWhileIdle` 和 `alarmClock` 两种调度模式
+
+### 数据库设计
+
+- 使用Provider进行状态管理
+- ChangeNotifier实现数据变更通知
+- 异步操作错误处理
+- 数据持久化同步
+
+## 🐛 故障排除
+
+### ❌ 通知不工作
+
+#### 权限相关
+1. **检查通知权限**：确保已授予POST_NOTIFICATIONS权限
+2. **精确闹钟权限**：Android 12+需要SCHEDULE_EXACT_ALARM权限
+3. **电池优化**：确保应用已加入电池优化白名单
+4. **后台运行权限**：检查应用是否允许后台运行
+
+#### 系统相关
+1. **时区问题**：检查设备时区设置是否正确
+2. **系统版本**：确保Android版本支持所需功能
+3. **厂商限制**：部分厂商ROM可能有额外限制
+4. **勿扰模式**：检查系统勿扰模式设置
+
+#### 调试步骤
+```bash
+# 查看应用日志
+adb logcat | grep "todo_list_app"
+
+# 检查通知权限
+adb shell dumpsys notification
+
+# 查看电池优化状态
+adb shell dumpsys deviceidle whitelist
+```
+
+### 💥 Release版本崩溃
+
+1. **ProGuard规则**：确保已正确配置混淆规则
+2. **权限问题**：检查生产环境权限配置
+3. **日志分析**：使用 `adb logcat` 查看崩溃日志
+4. **依赖冲突**：检查第三方库版本兼容性
+
+### 💾 数据库问题
+
+1. **初始化失败**：检查数据库文件权限和存储空间
+2. **数据丢失**：确保正确处理数据库升级和迁移
+3. **性能问题**：优化数据库查询语句和索引
+4. **并发问题**：确保数据库操作的线程安全
+
+### 🔋 电池优化相关
+
+1. **权限申请失败**：检查targetSdkVersion和权限配置
+2. **白名单添加失败**：确保用户手动允许了权限
+3. **厂商定制**：不同厂商可能有不同的电池优化策略
+4. **系统版本兼容**：Android 6.0以下不需要此权限
+
+## 📱 应用截图
+
+### 主要界面
+- 🏠 主页面：任务列表和统计信息
+- ➕ 添加任务：创建和编辑任务界面
+- 🔔 通知设置：通知权限和设置管理
+- 📚 使用指南：5步交互式教程
+
+### 权限申请流程
+- 🎯 使用指南展示
+- 🔐 通知权限申请
+- 🔋 电池优化权限对话框
+- ✅ 权限配置完成
+
+## 🤝 贡献指南
+
+1. Fork 项目
+2. 创建功能分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add amazing feature'`
+4. 推送分支：`git push origin feature/amazing-feature`
+5. 提交 Pull Request
+
+## 📄 开源协议
+
+本项目采用 MIT 协议 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+## 🙏 致谢
+
+- [Flutter团队](https://flutter.dev) - 优秀的跨平台框架
+- [Material Design](https://material.io) - 设计指导原则
+- [Flutter Community](https://flutter.dev/community) - 丰富的插件生态
+- [Permission Handler](https://pub.dev/packages/permission_handler) - Android权限管理
+- [Flutter Local Notifications](https://pub.dev/packages/flutter_local_notifications) - 本地通知支持
+- [SharedPreferences](https://pub.dev/packages/shared_preferences) - 偏好设置存储
+
+## 📞 联系方式
+
+- GitHub: [@fxlqwq](https://github.com/fxlqwq)
+- 项目链接: [https://github.com/fxlqwq/ToDoList-Notice-Flutter](https://github.com/fxlqwq/ToDoList-Notice-Flutter)
+
+## 📈 版本历史
+
+### v1.5.0 (当前版本)
+- ✨ 添加首次使用指南
+- 🔋 集成电池优化权限管理
+- 🔐 实现智能权限申请系统
+- 💾 添加偏好设置管理
+- 📱 Android原生权限处理
+
+### v1.4.2
+- 🔧 改进通知系统稳定性
+- 🛡️ 增强错误处理机制
+- 🎨 优化用户界面体验
+
+### v1.0.0
+- 🎉 首个正式版本发布
+- 📝 基础任务管理功能
+- 🔔 本地通知提醒
+- 💾 SQLite数据存储
+
+---
+
+⭐ 如果这个项目对您有帮助，请给它一个星标！
+
+💡 **提示**：首次安装后，请按照应用的使用指南完成权限设置，以获得最佳的通知体验。

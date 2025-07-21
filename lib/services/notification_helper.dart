@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'notification_service.dart';
+import 'battery_optimization_service.dart';
 
 /// 通知服务辅助类，用于安全地处理通知相关操作
 class NotificationHelper {
@@ -8,6 +9,7 @@ class NotificationHelper {
   NotificationHelper._internal();
 
   final NotificationService _notificationService = NotificationService();
+  final BatteryOptimizationService _batteryService = BatteryOptimizationService();
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
@@ -44,6 +46,23 @@ class NotificationHelper {
     } catch (e) {
       debugPrint('请求通知权限失败: $e');
       return false;
+    }
+  }
+
+  /// 请求所有必要权限（包括电池优化）
+  Future<Map<String, bool>> requestAllPermissions(BuildContext context) async {
+    try {
+      if (!_isInitialized) {
+        final initSuccess = await safeInit();
+        if (!initSuccess) {
+          return {'notification': false, 'batteryOptimization': false, 'scheduleExactAlarm': false};
+        }
+      }
+      
+      return await _batteryService.requestAllPermissions(context);
+    } catch (e) {
+      debugPrint('请求所有权限失败: $e');
+      return {'notification': false, 'batteryOptimization': false, 'scheduleExactAlarm': false};
     }
   }
 

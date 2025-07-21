@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'services/todo_provider.dart';
 import 'services/database_service.dart';
 import 'services/notification_helper.dart';
+import 'services/preferences_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/app_theme.dart';
 import 'dart:ui';
@@ -28,6 +29,7 @@ void main() async {
     // Initialize services with error handling
     bool databaseInitialized = false;
     bool notificationInitialized = false;
+    bool preferencesInitialized = false;
     
     try {
       final databaseService = DatabaseService();
@@ -40,7 +42,19 @@ void main() async {
       // Continue without database - app will work in read-only mode
       databaseInitialized = false;
     }
-    
+
+    try {
+      // Initialize preferences service
+      final preferencesService = PreferencesService();
+      await preferencesService.init();
+      preferencesInitialized = true;
+      debugPrint('Preferences service initialized successfully');
+    } catch (e, stackTrace) {
+      debugPrint('Preferences service initialization error: $e');
+      debugPrint('Preferences error stack trace: $stackTrace');
+      preferencesInitialized = false;
+    }
+
     try {
       // Initialize notification service
       final notificationHelper = NotificationHelper();
@@ -54,7 +68,7 @@ void main() async {
       // Continue without notifications for now
     }
     
-    debugPrint('App initialization complete - Database: $databaseInitialized, Notifications: $notificationInitialized');
+    debugPrint('App initialization complete - Database: $databaseInitialized, Notifications: $notificationInitialized, Preferences: $preferencesInitialized');
     
     runApp(MyApp(
       databaseInitialized: databaseInitialized,

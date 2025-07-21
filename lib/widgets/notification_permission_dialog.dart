@@ -33,7 +33,7 @@ class NotificationPermissionDialog extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Enable Notifications',
+              '启用通知提醒',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -41,7 +41,7 @@ class NotificationPermissionDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Allow notifications to receive reminders for your tasks and daily summaries.',
+              '允许发送通知以便在任务到期时提醒您，确保您不会错过重要的待办事项。',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -54,7 +54,7 @@ class NotificationPermissionDialog extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Maybe Later'),
+                    child: const Text('暂不开启'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -69,7 +69,11 @@ class NotificationPermissionDialog extends StatelessWidget {
                         context.read<TodoProvider>().scheduleDailySummary();
                       }
                     },
-                    child: const Text('Allow'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('立即开启'),
                   ),
                 ),
               ],

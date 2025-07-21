@@ -18,54 +18,64 @@ class NotificationService {
       // Initialize timezone with error handling
       try {
         tz.initializeTimeZones();
-        print('时区初始化成功'); // 在Release版本中使用print替代debugPrint
+        debugPrint('时区初始化成功');
       } catch (e) {
-        print('时区初始化失败: $e');
+        debugPrint('时区初始化失败: $e');
         // Continue with system default timezone
       }
       
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings('@mipmap/ic_launcher');
 
+      const DarwinInitializationSettings initializationSettingsIOS =
+          DarwinInitializationSettings(
+        requestAlertPermission: false,
+        requestBadgePermission: false,
+        requestSoundPermission: false,
+      );
+
       const InitializationSettings initializationSettings =
           InitializationSettings(
         android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS,
       );
 
       bool? initialized = await flutterLocalNotificationsPlugin.initialize(
         initializationSettings,
-        onDidReceiveNotificationResponse: (NotificationResponse response) async {
-          // 安全的通知响应处理，防止崩溃
-          try {
-            print('通知被点击: ${response.payload}');
-            // 添加空检查
-            if (response.payload != null && response.payload!.isNotEmpty) {
-              // 可以在这里添加导航到特定任务的逻辑
-              print('处理通知载荷: ${response.payload}');
-            }
-          } catch (e, stackTrace) {
-            print('处理通知点击失败: $e');
-            print('堆栈跟踪: $stackTrace');
-            // 防止崩溃，静默处理错误
-          }
-        },
+        onDidReceiveNotificationResponse: _onNotificationResponse,
       );
 
-      print('通知服务初始化结果: $initialized');
+      debugPrint('通知服务初始化结果: $initialized');
 
       // Request permissions for Android 13+ with error handling
       try {
         final permissionGranted = await requestPermissions();
-        print('通知权限获取结果: $permissionGranted');
+        debugPrint('通知权限获取结果: $permissionGranted');
       } catch (e) {
-        print('权限请求过程中出错: $e');
+        debugPrint('权限请求过程中出错: $e');
         // 继续执行，不让权限问题阻止应用运行
       }
       
     } catch (e, stackTrace) {
-      print('通知服务初始化失败: $e');
-      print('初始化错误堆栈跟踪: $stackTrace');
+      debugPrint('通知服务初始化失败: $e');
+      debugPrint('初始化错误堆栈跟踪: $stackTrace');
       // Continue without crashing the app
+    }
+  }
+
+  // 分离出通知响应处理方法
+  void _onNotificationResponse(NotificationResponse response) async {
+    try {
+      debugPrint('通知被点击: ${response.payload}');
+      // 添加空检查
+      if (response.payload != null && response.payload!.isNotEmpty) {
+        // 可以在这里添加导航到特定任务的逻辑
+        debugPrint('处理通知载荷: ${response.payload}');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('处理通知点击失败: $e');
+      debugPrint('堆栈跟踪: $stackTrace');
+      // 防止崩溃，静默处理错误
     }
   }
 
@@ -87,6 +97,38 @@ class NotificationService {
       return false;
     } catch (e) {
       debugPrint('权限请求失败: $e');
+      return false;
+    }
+  }
+
+  /// 请求忽略电池优化权限（提高后台通知可靠性）
+  Future<bool> requestBatteryOptimizationPermission() async {
+    try {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidImplementation != null) {
+        // 注意：flutter_local_notifications 可能不直接支持这个功能
+        // 这里返回 true 作为占位符，实际实现可能需要使用平台通道
+        debugPrint('请求电池优化权限（占位符实现）');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('请求电池优化权限失败: $e');
+      return false;
+    }
+  }
+
+  /// 检查是否已忽略电池优化
+  Future<bool> isBatteryOptimizationIgnored() async {
+    try {
+      // 这里应该检查电池优化设置，暂时返回 false
+      debugPrint('检查电池优化状态（占位符实现）');
+      return false;
+    } catch (e) {
+      debugPrint('检查电池优化状态失败: $e');
       return false;
     }
   }
@@ -119,13 +161,13 @@ class NotificationService {
         'todo_reminders',
         '待办事项提醒',
         channelDescription: '待办事项的提醒通知',
-        importance: Importance.high, // 改为high而不是max
+        importance: Importance.high,
         priority: fln.Priority.high,
         icon: '@mipmap/ic_launcher',
         enableLights: true,
         enableVibration: true,
         playSound: true,
-        autoCancel: true, // 改为true
+        autoCancel: true,
         ongoing: false,
         showWhen: true,
         channelShowBadge: true,
@@ -175,29 +217,23 @@ class NotificationService {
             payload: todo.id.toString(),
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
-            matchDateTimeComponents: DateTimeComponents.dateAndTime,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            // 简化调度模式，使用默认的 inexactAllowWhileIdle
           );
           
-          debugPrint('通知已安排成功: ID ${todo.id}');
+          debugPrint('通知已安排成功: ID ${todo.id}，时间：$scheduledTime');
         } catch (schedulingError) {
           debugPrint('通知调度失败: $schedulingError');
-          // 尝试备用调度方法
+          // 尝试使用即时通知作为备选
           try {
-            await flutterLocalNotificationsPlugin.zonedSchedule(
-              todo.id ?? 0,
-              '✅ 待办提醒',
-              todo.title,
-              scheduledTime,
-              platformChannelSpecifics,
+            await showNotification(
+              id: todo.id ?? 0,
+              title: '⚠️ 调度失败，立即提醒',
+              body: '无法调度提醒，但任务已保存：${todo.title}',
               payload: todo.id.toString(),
-              uiLocalNotificationDateInterpretation:
-                  UILocalNotificationDateInterpretation.absoluteTime,
-              androidScheduleMode: AndroidScheduleMode.alarmClock,
             );
-            debugPrint('使用备用方法成功安排通知: ID ${todo.id}');
+            debugPrint('使用即时通知替代调度通知');
           } catch (backupError) {
-            debugPrint('备用通知调度也失败: $backupError');
+            debugPrint('即时通知也失败: $backupError');
           }
         }
       } else {
@@ -266,8 +302,6 @@ class NotificationService {
             platformChannelSpecifics,
             uiLocalNotificationDateInterpretation:
                 UILocalNotificationDateInterpretation.absoluteTime,
-            matchDateTimeComponents: DateTimeComponents.time,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           );
 
           debugPrint('每日总结通知已安排');
@@ -355,11 +389,46 @@ class NotificationService {
 
   // Test notification - for debugging
   Future<void> testNotification() async {
-    await showNotification(
-      id: 99999,
-      title: '🔔 通知测试',
-      body: '如果您看到这条通知，说明通知功能正常工作！',
-      payload: 'test',
-    );
+    try {
+      await showNotification(
+        id: 99999,
+        title: '🔔 通知测试',
+        body: '如果您看到这条通知，说明通知功能正常工作！时间：${DateTime.now().toString()}',
+        payload: 'test',
+      );
+      debugPrint('测试通知已发送');
+    } catch (e) {
+      debugPrint('发送测试通知失败: $e');
+    }
+  }
+
+  // 调试：检查所有通知状态
+  Future<void> debugNotificationStatus() async {
+    try {
+      final pendingNotifications = await getPendingNotifications();
+      debugPrint('=== 通知调试信息 ===');
+      debugPrint('待处理通知数量: ${pendingNotifications.length}');
+      
+      for (var notification in pendingNotifications) {
+        debugPrint('ID: ${notification.id}, 标题: ${notification.title}, 内容: ${notification.body}');
+      }
+      
+      // 检查通知权限状态
+      final androidImplementation = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidImplementation != null) {
+        try {
+          final areNotificationsEnabled = await androidImplementation.areNotificationsEnabled();
+          debugPrint('通知权限状态: $areNotificationsEnabled');
+        } catch (e) {
+          debugPrint('检查通知权限失败: $e');
+        }
+      }
+      
+      debugPrint('=== 通知调试信息结束 ===');
+    } catch (e) {
+      debugPrint('调试通知状态失败: $e');
+    }
   }
 }

@@ -48,6 +48,8 @@ class _NotificationSettingsScreenState
           const SizedBox(height: 16),
           _buildTestCard(),
           const SizedBox(height: 16),
+          _buildBackgroundPermissionCard(),
+          const SizedBox(height: 16),
           _buildInfoCard(),
         ],
       ),
@@ -201,6 +203,95 @@ class _NotificationSettingsScreenState
     );
   }
 
+  Widget _buildBackgroundPermissionCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    FontAwesomeIcons.mobile,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '后台运行权限',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '允许应用在后台发送通知',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _requestBackgroundPermission,
+                  icon: const Icon(Icons.settings, size: 16),
+                  label: const Text('授权'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline,
+                    color: Colors.orange.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '为了确保您能及时收到任务提醒，请在系统设置中允许应用后台运行和忽略电池优化。',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.orange.shade700,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTestCard() {
     return Card(
       child: Padding(
@@ -325,5 +416,76 @@ class _NotificationSettingsScreenState
         ),
       );
     }
+  }
+
+  void _requestBackgroundPermission() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.settings, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('后台权限设置'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '为确保通知正常工作，请手动进行以下设置：',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text('1. 进入系统设置 > 应用管理'),
+            SizedBox(height: 4),
+            Text('2. 找到"待办事件-FXL"应用'),
+            SizedBox(height: 4),
+            Text('3. 允许"自启动"和"后台活动"'),
+            SizedBox(height: 4),
+            Text('4. 在电池优化中选择"不优化"'),
+            SizedBox(height: 12),
+            Text(
+              '注意：不同品牌手机的设置路径可能略有差异',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('我知道了'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // 这里可以尝试打开应用设置页面
+              _openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openAppSettings() {
+    // TODO: 实现打开应用设置的功能
+    // 可能需要使用 intent 或其他插件
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('请手动进入设置 > 应用管理 > 待办事件-FXL'),
+        duration: Duration(seconds: 4),
+      ),
+    );
   }
 }

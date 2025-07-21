@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../models/todo.dart';
+import '../models/todo.dart' show Todo, Priority, Category;
 import '../services/todo_provider.dart';
+import '../services/preferences_service.dart';
+import '../services/notification_helper.dart';
+import '../utils/app_theme.dart';
 import '../widgets/todo_card.dart';
 import '../widgets/stats_card.dart';
 import '../widgets/category_filter_chip.dart';
 import '../widgets/priority_filter_chip.dart';
-import '../widgets/notification_permission_dialog.dart';
+import '../widgets/usage_guide_dialog.dart';
 import 'add_edit_todo_screen.dart';
 import 'notification_settings_screen.dart';
+import 'preferences_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,25 +45,174 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Load todos when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TodoProvider>().loadTodos();
-      _checkNotificationPermission();
+      _handleFirstLaunchSetup();
     });
   }
 
-  void _checkNotificationPermission() async {
-    // Check if we should show notification permission dialog
-    // This could be based on SharedPreferences or first launch detection
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (mounted) {
-      final result = await NotificationPermissionDialog.show(context);
-      if (result == true && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notifications enabled! You\'ll receive task reminders.'),
-            backgroundColor: Color(0xFF10B981),
-          ),
-        );
+  void _handleFirstLaunchSetup() async {
+    try {
+      final preferencesService = PreferencesService();
+      
+      // 检查是否是首次启动
+      final isFirstLaunch = await preferencesService.isFirstLaunch();
+      
+      if (isFirstLaunch && mounted) {
+        // 显示使用说明
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (mounted) {
+          final guideResult = await UsageGuideDialog.show(context);
+          if (guideResult == true) {
+            await preferencesService.setUsageGuideShown(true);
+          }
+        }
+        
+        // 设置首次启动完成
+        await preferencesService.setFirstLaunch(false);
       }
+      
+      // 检查通知权限是否已请求过
+      final permissionAsked = await preferencesService.isNotificationPermissionAsked();
+      
+      if (!permissionAsked && mounted) {
+        await Future.delayed(const Duration(milliseconds: 1000));
+        if (mounted) {
+          // 使用新的权限请求系统
+          final notificationHelper = NotificationHelper();
+          final results = await notificationHelper.requestAllPermissions(context);
+          
+          await preferencesService.setNotificationPermissionAsked(true);
+          
+          // 检查所有权限的结果
+          final notificationGranted = results['notification'] ?? false;
+          final batteryOptGranted = results['batteryOptimization'] ?? false;
+          final alarmGranted = results['scheduleExactAlarm'] ?? false;
+          
+          if (notificationGranted) {
+            await preferencesService.setNotificationEnabled(true);
+            
+            String message = '通知权限已启用！';
+            if (batteryOptGranted) {
+              message += ' 后台运行已优化，通知将更可靠。';
+            }
+            if (alarmGranted) {
+              message += ' 精确提醒已启用。';
+            }
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(message),
+                  backgroundColor: const Color(0xFF10B981),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          } else {
+            await preferencesService.setNotificationEnabled(false);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('未启用通知权限，您将无法收到任务提醒。'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          }
+        }
+      }
+      
+      // 更新最后使用日期
+      await preferencesService.updateLastUsedDate();
+      
+    } catch (e) {
+      debugPrint('首次启动设置失败: $e');
     }
+  }
+
+  void _checkNotificationPermission() async {
+    // 这个方法现在被 _handleFirstLaunchSetup 替代
+    // 保留作为备用
+  }
+
+  void _handleMenuSelection(String value) async {
+    switch (value) {
+      case 'usage_guide':
+        await UsageGuideDialog.show(context);
+        break;
+      case 'about':
+        _showAboutDialog();
+        break;
+      case 'debug_preferences':
+        if (kDebugMode && mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PreferencesTestScreen(),
+            ),
+          );
+        }
+        break;
+    }
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                FontAwesomeIcons.listCheck,
+                color: AppTheme.primaryColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('关于应用'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'TodoList - 智能待办事项管理',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text('版本 1.5.0'),
+            SizedBox(height: 12),
+            Text(
+              '功能特点：',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 4),
+            Text('• 智能提醒，后台通知'),
+            Text('• 任务分类与优先级管理'),
+            Text('• 数据本地存储'),
+            Text('• 简洁美观的界面设计'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -105,6 +259,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             color: Colors.white,
             size: 20,
           ),
+        ),
+        PopupMenuButton<String>(
+          icon: const Icon(
+            FontAwesomeIcons.ellipsisVertical,
+            color: Colors.white,
+            size: 20,
+          ),
+          onSelected: _handleMenuSelection,
+          itemBuilder: (BuildContext context) => [
+            const PopupMenuItem<String>(
+              value: 'usage_guide',
+              child: Row(
+                children: [
+                  Icon(FontAwesomeIcons.lightbulb, size: 16),
+                  SizedBox(width: 8),
+                  Text('使用指南'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'about',
+              child: Row(
+                children: [
+                  Icon(FontAwesomeIcons.info, size: 16),
+                  SizedBox(width: 8),
+                  Text('关于应用'),
+                ],
+              ),
+            ),
+            // Debug menu item - only in debug mode
+            if (kDebugMode)
+              const PopupMenuItem<String>(
+                value: 'debug_preferences',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, size: 16),
+                    SizedBox(width: 8),
+                    Text('偏好设置调试'),
+                  ],
+                ),
+              ),
+          ],
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
@@ -170,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Row(
       children: [
         Expanded(
-          child: Container(
+          child: SizedBox(
             height: 40, // 固定高度
             child: TextField(
               controller: _searchController,
