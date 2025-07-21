@@ -1,0 +1,164 @@
+name: PR Build Check
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-build:
+    name: PR Build Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        channel: 'stable'
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Verify dependencies
+      run: flutter pub deps
+      
+    - name: Check formatting
+      run: dart format --set-exit-if-changed .
+      continue-on-error: true
+      
+    - name: Analyze code
+      run: flutter analyze --fatal-infos
+      continue-on-error: true
+      
+    - name: Run tests
+      run: flutter test --coverage
+      continue-on-error: true
+      
+    - name: Check for Android manifest
+      run: |
+        if [ ! -f "android/app/src/main/AndroidManifest.xml" ]; then
+          echo "❌ AndroidManifest.xml not found!"
+          exit 1
+        fi
+        echo "✅ AndroidManifest.xml found"
+        
+    - name: Validate pubspec.yaml
+      run: |
+        if ! grep -q "name: todo_list_app" pubspec.yaml; then
+          echo "❌ Invalid pubspec.yaml"
+          exit 1
+        fi
+        echo "✅ pubspec.yaml is valid"
+        
+    - name: Build APK (Debug)
+      id: build_debug
+      run: |
+        echo "Building debug APK..."
+        flutter build apk --debug --verbose
+        if [ $? -eq 0 ]; then
+          echo "build_success=true" >> $GITHUB_OUTPUT
+          echo "✅ Debug APK build successful"
+        else
+          echo "build_success=false" >> $GITHUB_OUTPUT
+          echo "❌ Debug APK build failed"
+        fi
+        
+    - name: Get APK info
+      if: steps.build_debug.outputs.build_success == 'true'
+      run: |
+        apk_path="build/app/outputs/flutter-apk/app-debug.apk"
+        if [ -f "$apk_path" ]; then
+          size=$(stat -c%s "$apk_path")
+          size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
+          echo "📱 APK generated successfully"
+          echo "📊 Size: ${size_mb} MB"
+          echo "APK_SIZE_MB=$size_mb" >> $GITHUB_ENV
+        else
+          echo "❌ APK file not found"
+        fi
+        
+    - name: Upload PR APK
+      if: steps.build_debug.outputs.build_success == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: PR-Debug-APK-${{ github.event.pull_request.number }}
+        path: build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 7
+        
+    - name: Comment PR
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const buildSuccess = '${{ steps.build_debug.outputs.build_success }}' === 'true';
+          const apkSize = '${{ env.APK_SIZE_MB }}' || 'N/A';
+          
+          let body = `## 🔍 PR Build Check Results\n\n`;
+          
+          if (buildSuccess) {
+            body += `### ✅ Build Status: SUCCESS\n\n`;
+            body += `📱 **Debug APK**: Generated successfully\n`;
+            body += `📊 **Size**: ${apkSize} MB\n`;
+            body += `📥 **Download**: Available in Actions artifacts\n\n`;
+            body += `### 🧪 Validation Steps\n`;
+            body += `- ✅ Dependencies resolved\n`;
+            body += `- ✅ AndroidManifest.xml found\n`;
+            body += `- ✅ pubspec.yaml validated\n`;
+            body += `- ✅ Debug APK build successful\n\n`;
+          } else {
+            body += `### ❌ Build Status: FAILED\n\n`;
+            body += `🚨 **Issue**: Debug APK build failed\n`;
+            body += `🔍 **Action**: Please check the build logs\n\n`;
+          }
+          
+          body += `### 📋 Next Steps\n`;
+          if (buildSuccess) {
+            body += `1. Review code changes\n`;
+            body += `2. Test the debug APK if needed\n`;
+            body += `3. Merge when ready\n`;
+          } else {
+            body += `1. Check the Actions tab for detailed error logs\n`;
+            body += `2. Fix any build issues\n`;
+            body += `3. Push fixes to update this PR\n`;
+          }
+          
+          body += `\n---\n`;
+          body += `🤖 *Automated build check by GitHub Actions*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+          
+    - name: Set PR status
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const buildSuccess = '${{ steps.build_debug.outputs.build_success }}' === 'true';
+          const state = buildSuccess ? 'success' : 'failure';
+          const description = buildSuccess ? 'APK build successful' : 'APK build failed';
+          
+          github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.payload.pull_request.head.sha,
+            state: state,
+            target_url: `${context.payload.repository.html_url}/actions/runs/${context.runId}`,
+            description: description,
+            context: 'APK Build Check'
+          });

@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.5.0
+version: 1.5.5
 
 environment:
   sdk: ^3.5.4
@@ -63,6 +63,25 @@ dependencies:
   
   # Permission handling
   permission_handler: ^11.3.1
+  
+  # Markdown support
+  flutter_markdown: ^0.7.3+1
+  markdown: ^7.2.2
+  
+  # File picker for attachments
+  file_picker: ^8.1.2
+  
+  # Image picker
+  image_picker: ^1.1.2
+  
+  # Audio recording and playing
+  flutter_sound: ^9.11.2
+  
+  # Path provider for file storage
+  path_provider: ^2.1.4
+  
+  # UUID for unique identifiers
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:

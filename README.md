@@ -13,6 +13,10 @@
 - **智能分类系统**：支持6种预设分类（个人、工作、健康、购物、学习、其他）
 - **优先级设置**：三级优先级系统（高、中、低）
 - **任务状态管理**：完成、删除、编辑任务状态
+- **子任务功能**：每个任务支持创建多个子任务，独立完成状态管理
+- **进度跟踪**：实时显示子任务完成进度百分比
+- **附件支持**：为任务添加图片、音频录制、文本笔记等附件
+- **Markdown描述**：任务描述支持Markdown格式，提供富文本编辑体验
 
 ### 🔔 智能通知系统
 - **精准时间提醒**：支持精确到分钟的提醒设置
@@ -78,7 +82,16 @@
 ### UI组件
 - **Material Design**：Google Material设计组件
 - **font_awesome_flutter**：Font Awesome图标库
+- **flutter_staggered_animations**：流畅的交错动画
+- **flutter_markdown**：Markdown渲染和编辑支持
 - **Intl**：国际化支持
+
+### 多媒体功能
+- **flutter_sound 9.11.2**：音频录制和播放
+- **image_picker 1.1.2**：相机拍照和相册选择
+- **file_picker 8.1.2**：文件选择和管理
+- **path_provider 2.1.4**：文件路径管理
+- **uuid 4.5.1**：唯一标识符生成
 
 ### 开发工具
 - **ProGuard**：Release版本代码混淆
@@ -90,7 +103,9 @@
 lib/
 ├── main.dart                 # 应用入口，全局错误处理
 ├── models/
-│   └── todo.dart            # 任务数据模型，包含验证逻辑
+│   ├── todo.dart            # 任务数据模型，包含验证逻辑
+│   ├── subtask.dart         # 子任务数据模型
+│   └── attachment.dart      # 附件数据模型
 ├── screens/
 │   ├── splash_screen.dart       # 启动画面
 │   ├── home_screen.dart         # 主页面，任务列表展示
@@ -103,6 +118,7 @@ lib/
 │   ├── notification_helper.dart  # 通知辅助类
 │   ├── battery_optimization_service.dart # 电池优化权限管理
 │   ├── preferences_service.dart # 偏好设置服务
+│   ├── attachment_service.dart  # 附件服务，文件和多媒体操作
 │   └── todo_provider.dart       # 任务数据提供者，状态管理
 ├── utils/
 │   └── app_theme.dart          # 应用主题配置
@@ -112,7 +128,10 @@ lib/
     ├── priority_filter_chip.dart # 优先级筛选组件
     ├── stats_card.dart          # 统计卡片组件
     ├── notification_permission_dialog.dart # 权限请求对话框
-    └── usage_guide_dialog.dart  # 使用指南对话框
+    ├── usage_guide_dialog.dart  # 使用指南对话框
+    ├── subtask_widget.dart      # 子任务组件
+    ├── attachment_widget.dart   # 附件显示和管理组件
+    └── markdown_widget.dart     # Markdown编辑和预览组件
 
 android/
 ├── app/
@@ -252,6 +271,7 @@ flutter build appbundle --release
 
 #### 数据库设计
 ```sql
+-- 主任务表
 CREATE TABLE todos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
@@ -261,8 +281,33 @@ CREATE TABLE todos (
   due_date TEXT,
   reminder_date TEXT,
   is_completed INTEGER DEFAULT 0,
+  use_markdown INTEGER DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+-- 子任务表 (v2.0新增)
+CREATE TABLE subtasks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  todo_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  is_completed INTEGER DEFAULT 0,
+  order_index INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (todo_id) REFERENCES todos (id) ON DELETE CASCADE
+);
+
+-- 附件表 (v2.0新增)  
+CREATE TABLE attachments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  todo_id INTEGER NOT NULL,
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_size INTEGER,
+  attachment_type TEXT NOT NULL,
+  text_content TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (todo_id) REFERENCES todos (id) ON DELETE CASCADE
 );
 ```
 
@@ -279,26 +324,31 @@ CREATE TABLE todos (
 - **异步处理**：完善的异步操作错误处理
 - **数据同步**：实时数据持久化
 
-## 🌟 v1.5.0 重大更新
+## 🌟 v1.5.5 重大更新
 
-### ✨ 新增功能
-- 🎓 **首次使用指南**：5步交互式教程
-- 🔋 **电池优化管理**：自动申请后台运行权限
-- 🔐 **智能权限申请**：一次性申请所有必要权限
-- 💾 **偏好设置系统**：记住用户选择，避免重复提示
-- 📱 **原生权限集成**：Android原生电池优化权限处理
+### ✨ 新增核心功能
+- 📋 **子任务系统**：每个任务支持多个子任务，带完成进度跟踪
+- � **附件功能**：支持图片、音频录制和文本笔记附件
+- � **Markdown支持**：任务描述支持Markdown格式，预览/编辑模式切换
+- 🎯 **完整中文化**：所有界面元素全面中文本地化
 
-### 🚀 性能优化
-- 📈 **通知可靠性**：三重备用调度策略
-- 🛡️ **错误处理**：全面的异常捕获和恢复机制
-- ⚡ **启动优化**：智能的首次启动流程
-- 🔄 **状态管理**：优化的Provider状态管理
+### 📊 增强功能
+- � **进度可视化**：子任务完成进度条显示
+- 🎨 **富文本编辑**：Markdown快捷工具栏（粗体、斜体、标题、列表等）
+- 📱 **多媒体支持**：集成相机拍照、相册选择、音频录制功能
+- 💾 **数据库升级**：SQLite架构升级至版本2，支持新功能表结构
 
-### 🎨 用户体验改进
-- 🎯 **引导流程**：从使用指南到权限申请的无缝体验
-- 🔔 **权限提示**：友好的权限说明和引导
-- 📋 **菜单增强**：支持重新查看使用指南
-- 🐛 **调试支持**：开发模式下的偏好设置调试页面
+### � 技术改进
+- �️ **新增数据模型**：Subtask和Attachment模型完整实现
+- �️ **服务层扩展**：AttachmentService处理文件操作和多媒体功能
+- 🎛️ **UI组件丰富**：新增SubtaskWidget、AttachmentWidget、MarkdownWidget
+- � **Android兼容性**：更新到compileSdk 35，minSdk 24以支持flutter_sound
+
+### 🎨 用户体验增强
+- ✅ **任务展开视图**：点击任务卡片查看完整子任务和附件列表
+- 🎵 **音频播放控制**：内置音频播放器，支持播放/暂停控制
+- �️ **图片预览**：点击图片附件可全屏预览
+- � **文本笔记对话框**：快速创建和查看文本笔记
 
 ## 🔧 核心功能实现（历史版本）
 
@@ -407,7 +457,14 @@ adb shell dumpsys deviceidle whitelist
 
 ## 📈 版本历史
 
-### v1.5.0 (当前版本)
+### v1.5.5 (当前版本) 
+- ✨ 添加子任务系统和进度跟踪
+- 📎 集成多媒体附件功能（图片、音频、文本）
+- 📝 支持Markdown格式任务描述
+- 🌏 完整中文本地化
+- 🗃️ 数据库架构升级至版本2
+
+### v1.5.0
 - ✨ 添加首次使用指南
 - 🔋 集成电池优化权限管理
 - 🔐 实现智能权限申请系统

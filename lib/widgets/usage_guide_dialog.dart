@@ -23,31 +23,31 @@ class _UsageGuideDialogState extends State<UsageGuideDialog> {
   int _currentPage = 0;
 
   final List<GuideStep> _steps = [
-    GuideStep(
+    const GuideStep(
       icon: FontAwesomeIcons.plus,
       title: '创建待办事项',
       description: '点击右下角的 + 按钮即可创建新的待办事项。你可以设置标题、描述、优先级和提醒时间。',
       color: AppTheme.primaryColor,
     ),
-    GuideStep(
+    const GuideStep(
       icon: FontAwesomeIcons.bell,
       title: '智能提醒功能',
       description: '设置提醒时间后，应用会在指定时间发送通知提醒你完成任务，即使应用处于后台也能正常提醒。',
       color: Color(0xFFE11D48),
     ),
-    GuideStep(
+    const GuideStep(
       icon: FontAwesomeIcons.checkDouble,
       title: '管理任务状态',
       description: '点击任务卡片左侧的圆圈标记任务完成，长按任务卡片可以进行编辑或删除操作。',
       color: Color(0xFF10B981),
     ),
-    GuideStep(
+    const GuideStep(
       icon: FontAwesomeIcons.filter,
       title: '筛选和分类',
       description: '使用顶部的筛选器按优先级、分类或完成状态查看任务，让你的工作更有条理。',
       color: Color(0xFF8B5CF6),
     ),
-    GuideStep(
+    const GuideStep(
       icon: FontAwesomeIcons.chartLine,
       title: '统计信息',
       description: '主页顶部显示你的任务统计，包括总任务数、已完成数和逾期任务数，帮助你掌握进度。',
@@ -105,7 +105,7 @@ class _UsageGuideDialogState extends State<UsageGuideDialog> {
                     color: AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     FontAwesomeIcons.lightbulb,
                     color: AppTheme.primaryColor,
                     size: 24,
@@ -230,7 +230,7 @@ class _UsageGuideDialogState extends State<UsageGuideDialog> {
                   ElevatedButton(
                     onPressed: _nextPage,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF10B981),
+                      backgroundColor: const Color(0xFF10B981),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),

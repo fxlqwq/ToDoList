@@ -3,8 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import '../models/todo.dart';
+import '../models/subtask.dart';
+import '../models/attachment.dart';
 import '../services/todo_provider.dart';
+import '../services/attachment_service.dart';
+import '../services/database_service.dart';
 import '../utils/app_theme.dart';
+import '../widgets/subtask_widget.dart';
+import '../widgets/attachment_widget.dart';
+import '../widgets/markdown_widget.dart';
 
 class AddEditTodoScreen extends StatefulWidget {
   final Todo? todo;
@@ -33,11 +40,19 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
   bool _hasReminder = false;
   List<String> _tags = [];
 
+  // 新增字段
+  bool _useMarkdown = false;
+  List<Subtask> _subtasks = [];
+  List<Attachment> _attachments = [];
+  final AttachmentService _attachmentService = AttachmentService();
+  bool _isRecording = false;
+
   bool get _isEditing => widget.todo != null;
 
   @override
   void initState() {
     super.initState();
+    _attachmentService.init();
     if (_isEditing) {
       _populateFields();
     }
@@ -60,6 +75,11 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
     }
     _tags = List.from(todo.tags);
     _tagsController.text = _tags.join(', ');
+    
+    // 新字段
+    _useMarkdown = todo.useMarkdown;
+    _subtasks = List.from(todo.subtasks);
+    _attachments = List.from(todo.attachments);
   }
 
   @override
@@ -67,6 +87,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _tagsController.dispose();
+    _attachmentService.dispose();
     super.dispose();
   }
 
@@ -118,6 +139,10 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
             _buildReminderSection(),
             const SizedBox(height: 20),
             _buildTagsSection(),
+            const SizedBox(height: 20),
+            _buildSubtasksSection(),
+            const SizedBox(height: 20),
+            _buildAttachmentsSection(),
             const SizedBox(height: 100), // 增加底部间距防止溢出
           ],
         ),
@@ -146,16 +171,33 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
   }
 
   Widget _buildDescriptionField() {
-    return TextFormField(
-      controller: _descriptionController,
-      maxLines: 3,
-      decoration: const InputDecoration(
-        labelText: '任务描述',
-        hintText: '请输入任务描述',
-        prefixIcon: Icon(Icons.description),
-        alignLabelWithHint: true,
-      ),
-      textCapitalization: TextCapitalization.sentences,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '任务描述',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        MarkdownToggleWidget(
+          text: _descriptionController.text,
+          useMarkdown: _useMarkdown,
+          isEditing: true,
+          hintText: '请输入任务描述',
+          maxLines: 4,
+          onTextChanged: (text) {
+            _descriptionController.text = text;
+          },
+          onMarkdownToggle: (useMarkdown) {
+            setState(() {
+              _useMarkdown = useMarkdown;
+            });
+          },
+        ),
+      ],
     );
   }
 
@@ -598,9 +640,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
     if (date != null) {
       setState(() {
         _selectedDueDate = date;
-        if (_selectedDueTime == null) {
-          _selectedDueTime = const TimeOfDay(hour: 9, minute: 0);
-        }
+        _selectedDueTime ??= const TimeOfDay(hour: 9, minute: 0);
       });
     }
   }
@@ -627,9 +667,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
     if (date != null) {
       setState(() {
         _selectedReminderDate = date;
-        if (_selectedReminderTime == null) {
-          _selectedReminderTime = const TimeOfDay(hour: 8, minute: 0);
-        }
+        _selectedReminderTime ??= const TimeOfDay(hour: 8, minute: 0);
       });
     }
   }
@@ -651,6 +689,255 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
       _selectedDueDate = null;
       _selectedDueTime = null;
     });
+  }
+
+  // 构建子任务部分
+  Widget _buildSubtasksSection() {
+    return SubtaskListWidget(
+      subtasks: _subtasks,
+      onToggle: (index) {
+        setState(() {
+          _subtasks[index] = _subtasks[index].copyWith(
+            isCompleted: !_subtasks[index].isCompleted,
+          );
+        });
+      },
+      onDelete: (index) {
+        setState(() {
+          _subtasks.removeAt(index);
+        });
+      },
+      onEdit: (index, title) {
+        setState(() {
+          _subtasks[index] = _subtasks[index].copyWith(title: title);
+        });
+      },
+      onAdd: (title) {
+        setState(() {
+          _subtasks.add(Subtask(
+            todoId: 0, // 将在保存时设置
+            title: title,
+            order: _subtasks.length,
+          ));
+        });
+      },
+    );
+  }
+
+  // 构建附件部分
+  Widget _buildAttachmentsSection() {
+    return AttachmentListWidget(
+      attachments: _attachments,
+      onDelete: (index) async {
+        final attachment = _attachments[index];
+        await _attachmentService.deleteAttachmentFile(attachment);
+        setState(() {
+          _attachments.removeAt(index);
+        });
+      },
+      onAdd: (type) => _handleAddAttachment(type),
+    );
+  }
+
+  // 处理添加附件
+  void _handleAddAttachment(AttachmentType type) async {
+    Attachment? attachment;
+
+    switch (type) {
+      case AttachmentType.image:
+        attachment = await _showImageSourceDialog();
+        break;
+      case AttachmentType.audio:
+        attachment = await _handleAudioRecording();
+        break;
+      case AttachmentType.text:
+        attachment = await _showTextNoteDialog();
+        break;
+    }
+
+    if (attachment != null) {
+      setState(() {
+        _attachments.add(attachment!);
+      });
+    }
+  }
+
+  // 显示图片来源选择对话框
+  Future<Attachment?> _showImageSourceDialog() async {
+    return await showDialog<Attachment?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择图片来源'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('从相册选择'),
+              onTap: () async {
+                final attachment = await _attachmentService.pickImageFromGallery(0);
+                Navigator.of(context).pop(attachment);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('拍照'),
+              onTap: () async {
+                final attachment = await _attachmentService.takePhoto(0);
+                Navigator.of(context).pop(attachment);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 处理音频录制
+  Future<Attachment?> _handleAudioRecording() async {
+    if (_isRecording) {
+      final attachment = await _attachmentService.stopRecording(0);
+      setState(() {
+        _isRecording = false;
+      });
+      return attachment;
+    } else {
+      final started = await _attachmentService.startRecording();
+      if (started) {
+        setState(() {
+          _isRecording = true;
+        });
+        // 显示录制对话框
+        return await _showRecordingDialog();
+      }
+    }
+    return null;
+  }
+
+  // 显示录制对话框
+  Future<Attachment?> _showRecordingDialog() async {
+    return await showDialog<Attachment?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('录音中'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.mic,
+              size: 64,
+              color: Colors.red.shade400,
+            ),
+            const SizedBox(height: 16),
+            const Text('正在录音...'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final attachment = await _attachmentService.stopRecording(0);
+              setState(() {
+                _isRecording = false;
+              });
+              Navigator.of(context).pop(attachment);
+            },
+            child: const Text('停止录音'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示文本笔记对话框
+  Future<Attachment?> _showTextNoteDialog() async {
+    final titleController = TextEditingController();
+    final contentController = TextEditingController();
+
+    return await showDialog<Attachment?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('添加文本笔记'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(
+                labelText: '标题',
+                hintText: '输入笔记标题',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: contentController,
+              decoration: const InputDecoration(
+                labelText: '内容',
+                hintText: '输入笔记内容',
+              ),
+              maxLines: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (contentController.text.trim().isNotEmpty) {
+                final attachment = await _attachmentService.createTextAttachment(
+                  0,
+                  titleController.text.trim(),
+                  contentController.text.trim(),
+                );
+                Navigator.of(context).pop(attachment);
+              }
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 保存子任务
+  Future<void> _saveSubtasks(DatabaseService dbService, int todoId) async {
+    for (int i = 0; i < _subtasks.length; i++) {
+      final subtask = _subtasks[i].copyWith(todoId: todoId, order: i);
+      await dbService.insertSubtask(subtask);
+    }
+  }
+
+  // 更新子任务
+  Future<void> _updateSubtasks(DatabaseService dbService, int todoId) async {
+    // 删除现有的子任务
+    await dbService.deleteSubtasksForTodo(todoId);
+    // 重新插入子任务
+    await _saveSubtasks(dbService, todoId);
+  }
+
+  // 保存附件
+  Future<void> _saveAttachments(DatabaseService dbService, int todoId) async {
+    for (var attachment in _attachments) {
+      final newAttachment = attachment.copyWith(todoId: todoId);
+      await dbService.insertAttachment(newAttachment);
+    }
+  }
+
+  // 更新附件
+  Future<void> _updateAttachments(DatabaseService dbService, int todoId) async {
+    // 删除现有的附件
+    await dbService.deleteAttachmentsForTodo(todoId);
+    // 重新插入附件
+    await _saveAttachments(dbService, todoId);
   }
 
   // Save todo
@@ -695,15 +982,37 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
       tags: _tags,
       isCompleted: _isEditing ? widget.todo!.isCompleted : false,
       createdAt: _isEditing ? widget.todo!.createdAt : DateTime.now(),
+      useMarkdown: _useMarkdown,
+      subtasks: _subtasks,
+      attachments: _attachments,
     );
 
     final todoProvider = context.read<TodoProvider>();
+    final dbService = DatabaseService();
     bool success;
 
     if (_isEditing) {
       success = await todoProvider.updateTodo(todo);
+      if (success && todo.id != null) {
+        // 更新子任务
+        await _updateSubtasks(dbService, todo.id!);
+        // 更新附件
+        await _updateAttachments(dbService, todo.id!);
+      }
     } else {
       success = await todoProvider.addTodo(todo);
+      if (success) {
+        // 重新加载todos以获取最新的ID
+        await todoProvider.loadTodos();
+        final todos = todoProvider.allTodos;
+        final newTodo = todos.where((t) => t.title == todo.title).first;
+        if (newTodo.id != null) {
+          // 保存子任务
+          await _saveSubtasks(dbService, newTodo.id!);
+          // 保存附件
+          await _saveAttachments(dbService, newTodo.id!);
+        }
+      }
     }
 
     if (success && mounted) {

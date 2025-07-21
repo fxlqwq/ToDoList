@@ -51,11 +51,19 @@ class TodoProvider with ChangeNotifier {
   // Load todos from database
   Future<void> loadTodos() async {
     try {
-      _todos = await _databaseService.getAllTodos();
+      _todos = await _databaseService.getAllTodosWithDetails();
       _applyFilters();
       notifyListeners();
     } catch (e) {
       debugPrint('加载任务失败: $e');
+      // 回退到基本加载
+      try {
+        _todos = await _databaseService.getAllTodos();
+        _applyFilters();
+        notifyListeners();
+      } catch (e2) {
+        debugPrint('基本加载也失败: $e2');
+      }
     }
   }
 
@@ -118,7 +126,7 @@ class TodoProvider with ChangeNotifier {
   // Delete todo
   Future<bool> deleteTodo(int id) async {
     try {
-      await _databaseService.deleteTodo(id);
+      await _databaseService.deleteTodoWithDetails(id);
       await _notificationService.cancelNotification(id);
       _todos.removeWhere((todo) => todo.id == id);
       _applyFilters();

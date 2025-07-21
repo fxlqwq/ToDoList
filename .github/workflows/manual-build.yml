@@ -1,0 +1,161 @@
+name: Manual Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - debug
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        default: false
+        type: boolean
+      release_notes:
+        description: 'Release notes (if creating release)'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  manual-build:
+    name: Manual Build APK
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.5'
+        channel: 'stable'
+        
+    - name: Get dependencies
+      run: flutter pub get
+      
+    - name: Clean build
+      run: flutter clean && flutter pub get
+      
+    - name: Build APK
+      run: |
+        if [ "${{ inputs.build_type }}" == "debug" ]; then
+          flutter build apk --debug --verbose
+        else
+          flutter build apk --release --verbose
+        fi
+        
+    - name: Get build info
+      id: build_info
+      run: |
+        version=$(grep "^version:" pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+        build_number=$(grep "^version:" pubspec.yaml | sed 's/.*+//')
+        timestamp=$(date '+%Y%m%d-%H%M%S')
+        echo "version=$version" >> $GITHUB_OUTPUT
+        echo "build_number=$build_number" >> $GITHUB_OUTPUT
+        echo "timestamp=$timestamp" >> $GITHUB_OUTPUT
+        echo "Build info - Version: $version, Build: $build_number, Time: $timestamp"
+        
+    - name: Rename APK
+      run: |
+        filename="TodoList-v${{ steps.build_info.outputs.version }}-${{ inputs.build_type }}-${{ steps.build_info.outputs.timestamp }}.apk"
+        mv build/app/outputs/flutter-apk/app-${{ inputs.build_type }}.apk build/app/outputs/flutter-apk/$filename
+        echo "APK_FILENAME=$filename" >> $GITHUB_ENV
+        
+    - name: Get APK size
+      id: apk_size
+      run: |
+        size=$(stat -c%s "build/app/outputs/flutter-apk/$APK_FILENAME")
+        size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
+        echo "size_bytes=$size" >> $GITHUB_OUTPUT
+        echo "size_mb=$size_mb" >> $GITHUB_OUTPUT
+        echo "APK size: ${size_mb} MB"
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.APK_FILENAME }}
+        path: build/app/outputs/flutter-apk/${{ env.APK_FILENAME }}
+        retention-days: 90
+        
+    - name: Create manual release
+      if: inputs.create_release == true
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: manual-v${{ steps.build_info.outputs.version }}-${{ steps.build_info.outputs.timestamp }}
+        release_name: TodoList Manual Build v${{ steps.build_info.outputs.version }}
+        body: |
+          ## 📱 TodoList Manual Build v${{ steps.build_info.outputs.version }}
+          
+          **构建类型**: ${{ inputs.build_type }}
+          **构建时间**: ${{ steps.build_info.outputs.timestamp }}
+          **文件大小**: ${{ steps.apk_size.outputs.size_mb }} MB
+          **构建编号**: ${{ steps.build_info.outputs.build_number }}
+          
+          ### 📋 说明
+          ${{ inputs.release_notes || '手动触发构建，无额外说明。' }}
+          
+          ### 🔧 技术信息
+          - Flutter 3.24.5
+          - Android 5.0+ (API Level 21+)
+          - 文件名: `${{ env.APK_FILENAME }}`
+          
+          ### 📱 安装步骤
+          1. 下载下方的APK文件
+          2. 在Android设备上启用"未知来源"应用安装
+          3. 安装APK文件
+          4. 首次启动时按照引导完成权限设置
+          
+          ---
+          
+          🤖 此版本由GitHub Actions自动构建生成
+        draft: false
+        prerelease: true
+        
+    - name: Upload release asset
+      if: inputs.create_release == true
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: build/app/outputs/flutter-apk/${{ env.APK_FILENAME }}
+        asset_name: ${{ env.APK_FILENAME }}
+        asset_content_type: application/vnd.android.package-archive
+        
+    - name: Build Summary
+      run: |
+        echo "## 🎉 构建完成!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 APK 信息" >> $GITHUB_STEP_SUMMARY
+        echo "- **文件名**: ${{ env.APK_FILENAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **版本**: v${{ steps.build_info.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **构建类型**: ${{ inputs.build_type }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **文件大小**: ${{ steps.apk_size.outputs.size_mb }} MB" >> $GITHUB_STEP_SUMMARY
+        echo "- **构建时间**: ${{ steps.build_info.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📥 下载方式" >> $GITHUB_STEP_SUMMARY
+        echo "1. 在本次Action运行页面的 **Artifacts** 部分下载" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ inputs.create_release }}" == "true" ]; then
+          echo "2. 在项目的 **Releases** 页面下载" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 技术要求" >> $GITHUB_STEP_SUMMARY
+        echo "- Android 5.0+ (API Level 21+)" >> $GITHUB_STEP_SUMMARY
+        echo "- 允许安装未知来源应用" >> $GITHUB_STEP_SUMMARY
+        echo "- 建议允许后台运行以获得最佳通知体验" >> $GITHUB_STEP_SUMMARY

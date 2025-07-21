@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/todo.dart';
+import '../models/attachment.dart';
 import '../utils/app_theme.dart';
+import '../widgets/markdown_widget.dart';
 
 class TodoCard extends StatefulWidget {
   final Todo todo;
@@ -172,87 +174,97 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
   Widget _buildMainContent() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
-          // 完成状态勾选框
-          GestureDetector(
-            onTap: widget.onToggle,
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: widget.todo.isCompleted
-                      ? AppTheme.primaryColor
-                      : Colors.grey.shade400,
-                  width: 2,
-                ),
-                color: widget.todo.isCompleted
-                    ? AppTheme.primaryColor
-                    : Colors.transparent,
-              ),
-              child: widget.todo.isCompleted
-                  ? const Icon(
-                      Icons.check,
-                      size: 16,
-                      color: Colors.white,
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(width: 12),
-          // 任务内容
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.todo.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: widget.todo.isCompleted
-                        ? Colors.grey.shade500
-                        : Colors.black87,
-                    decoration: widget.todo.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                  maxLines: _isExpanded ? null : 3, // 允许标题显示更多行
-                  overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                ),
-                if (widget.todo.description.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.todo.description,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: widget.todo.isCompleted
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade600,
-                      decoration: widget.todo.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                    maxLines: _isExpanded ? null : 2,
-                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // 优先级和类别标识
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              _buildPriorityIndicator(),
-              if (widget.todo.category != Category.other) ...[
-                const SizedBox(height: 4),
-                _buildCategoryChip(),
-              ],
+              // 完成状态勾选框
+              GestureDetector(
+                onTap: widget.onToggle,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: widget.todo.isCompleted
+                          ? AppTheme.primaryColor
+                          : Colors.grey.shade400,
+                      width: 2,
+                    ),
+                    color: widget.todo.isCompleted
+                        ? AppTheme.primaryColor
+                        : Colors.transparent,
+                  ),
+                  child: widget.todo.isCompleted
+                      ? const Icon(
+                          Icons.check,
+                          size: 16,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 任务内容
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.todo.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.todo.isCompleted
+                            ? Colors.grey.shade500
+                            : Theme.of(context).textTheme.titleMedium?.color,
+                        decoration: widget.todo.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                      maxLines: _isExpanded ? null : 3, // 允许标题显示更多行
+                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                    ),
+                    if (widget.todo.description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      MarkdownToggleWidget(
+                        text: widget.todo.description,
+                        useMarkdown: widget.todo.useMarkdown,
+                        isEditing: false,
+                        maxLines: _isExpanded ? null : 2,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: widget.todo.isCompleted
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                          decoration: widget.todo.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // 优先级和类别标识
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildPriorityIndicator(),
+                  if (widget.todo.category != Category.other) ...[
+                    const SizedBox(height: 4),
+                    _buildCategoryChip(),
+                  ],
+                ],
+              ),
             ],
           ),
+          // 子任务和附件指示器
+          if (widget.todo.hasSubtasks || widget.todo.hasAttachments) ...[
+            const SizedBox(height: 12),
+            _buildIndicators(),
+          ],
         ],
       ),
     );
@@ -290,6 +302,16 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
             _formatCreatedDate(widget.todo.createdAt),
             Colors.grey.shade600,
           ),
+          // 显示子任务
+          if (widget.todo.hasSubtasks) ...[
+            const SizedBox(height: 12),
+            _buildSubtasksSection(),
+          ],
+          // 显示附件
+          if (widget.todo.hasAttachments) ...[
+            const SizedBox(height: 12),
+            _buildAttachmentsSection(),
+          ],
         ],
       ),
     );
@@ -476,5 +498,224 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
 
   String _formatTime(DateTime dateTime) {
     return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  // 构建指示器行
+  Widget _buildIndicators() {
+    return Row(
+      children: [
+        // 子任务指示器
+        if (widget.todo.hasSubtasks) ...[
+          _buildIndicatorChip(
+            icon: Icons.checklist,
+            text: '${widget.todo.completedSubtasksCount}/${widget.todo.totalSubtasksCount}',
+            color: widget.todo.completedSubtasksCount == widget.todo.totalSubtasksCount 
+                ? Colors.green 
+                : Colors.orange,
+          ),
+          const SizedBox(width: 8),
+        ],
+        
+        // 附件指示器
+        if (widget.todo.hasAttachments) ...[
+          _buildIndicatorChip(
+            icon: Icons.attach_file,
+            text: widget.todo.attachments.length.toString(),
+            color: Colors.blue,
+          ),
+          const SizedBox(width: 8),
+        ],
+        
+        // 进度条（如果有子任务）
+        if (widget.todo.hasSubtasks) ...[
+          const SizedBox(width: 4),
+          Expanded(
+            child: LinearProgressIndicator(
+              value: widget.todo.completionPercentage,
+              backgroundColor: Colors.grey.shade300,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                widget.todo.completionPercentage == 1.0 
+                    ? Colors.green 
+                    : AppTheme.primaryColor,
+              ),
+              minHeight: 3,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // 构建指示器芯片
+  Widget _buildIndicatorChip({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 构建子任务部分
+  Widget _buildSubtasksSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.checklist, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            Text(
+              '子任务 (${widget.todo.completedSubtasksCount}/${widget.todo.totalSubtasksCount})',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...widget.todo.subtasks.map((subtask) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                margin: const EdgeInsets.only(left: 8, right: 8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: subtask.isCompleted
+                        ? Colors.green
+                        : Colors.grey.shade400,
+                    width: 1.5,
+                  ),
+                  color: subtask.isCompleted
+                      ? Colors.green
+                      : Colors.transparent,
+                ),
+                child: subtask.isCompleted
+                    ? const Icon(
+                        Icons.check,
+                        size: 10,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+              Expanded(
+                child: Text(
+                  subtask.title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: subtask.isCompleted
+                        ? Colors.grey.shade500
+                        : Colors.grey.shade700,
+                    decoration: subtask.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+
+  // 构建附件部分
+  Widget _buildAttachmentsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.attach_file, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            Text(
+              '附件 (${widget.todo.attachments.length})',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: widget.todo.attachments.map((attachment) {
+            IconData icon;
+            Color color;
+            
+            switch (attachment.type) {
+              case AttachmentType.image:
+                icon = Icons.image;
+                color = Colors.blue;
+                break;
+              case AttachmentType.audio:
+                icon = Icons.audiotrack;
+                color = Colors.orange;
+                break;
+              case AttachmentType.text:
+                icon = Icons.text_snippet;
+                color = Colors.green;
+                break;
+            }
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 12, color: color),
+                  const SizedBox(width: 4),
+                  Text(
+                    attachment.fileName,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 }

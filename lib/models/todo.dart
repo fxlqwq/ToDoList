@@ -1,4 +1,6 @@
 import 'package:intl/intl.dart';
+import 'subtask.dart';
+import 'attachment.dart';
 
 enum Priority { low, medium, high }
 enum Category { personal, work, health, shopping, education, other }
@@ -16,6 +18,9 @@ class Todo {
   List<String> tags;
   bool hasReminder;
   DateTime? reminderDate;
+  bool useMarkdown; // 是否使用Markdown格式
+  List<Subtask> subtasks; // 子任务列表
+  List<Attachment> attachments; // 附件列表
 
   Todo({
     this.id,
@@ -30,9 +35,14 @@ class Todo {
     List<String>? tags,
     this.hasReminder = false,
     this.reminderDate,
+    this.useMarkdown = false,
+    List<Subtask>? subtasks,
+    List<Attachment>? attachments,
   }) : 
     createdAt = createdAt ?? DateTime.now(),
-    tags = tags ?? [];
+    tags = tags ?? [],
+    subtasks = subtasks ?? [],
+    attachments = attachments ?? [];
 
   // Convert Todo to Map for database
   Map<String, dynamic> toMap() {
@@ -49,6 +59,7 @@ class Todo {
       'tags': tags.join(','),
       'hasReminder': hasReminder ? 1 : 0,
       'reminderDate': reminderDate?.millisecondsSinceEpoch,
+      'useMarkdown': useMarkdown ? 1 : 0,
     };
   }
 
@@ -80,6 +91,8 @@ class Todo {
         reminderDate: map['reminderDate'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['reminderDate'])
             : null,
+        useMarkdown: map['useMarkdown'] == 1,
+        // 子任务和附件将通过单独的查询获取
       );
     } catch (e) {
       // 如果解析失败，返回一个基本的todo对象
@@ -107,6 +120,9 @@ class Todo {
     List<String>? tags,
     bool? hasReminder,
     DateTime? reminderDate,
+    bool? useMarkdown,
+    List<Subtask>? subtasks,
+    List<Attachment>? attachments,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -121,6 +137,9 @@ class Todo {
       tags: tags ?? this.tags,
       hasReminder: hasReminder ?? this.hasReminder,
       reminderDate: reminderDate ?? this.reminderDate,
+      useMarkdown: useMarkdown ?? this.useMarkdown,
+      subtasks: subtasks ?? this.subtasks,
+      attachments: attachments ?? this.attachments,
     );
   }
 
@@ -220,6 +239,38 @@ class Todo {
         return 'Other';
     }
   }
+
+  // 新的辅助方法
+  double get completionPercentage {
+    if (subtasks.isEmpty) {
+      return isCompleted ? 1.0 : 0.0;
+    }
+    
+    final completedSubtasks = subtasks.where((s) => s.isCompleted).length;
+    final totalSubtasks = subtasks.length;
+    final mainTaskWeight = 0.3; // 主任务权重30%
+    final subtasksWeight = 0.7; // 子任务权重70%
+    
+    double mainCompletion = isCompleted ? mainTaskWeight : 0.0;
+    double subtaskCompletion = (completedSubtasks / totalSubtasks) * subtasksWeight;
+    
+    return mainCompletion + subtaskCompletion;
+  }
+
+  bool get hasSubtasks => subtasks.isNotEmpty;
+  bool get hasAttachments => attachments.isNotEmpty;
+
+  int get completedSubtasksCount => subtasks.where((s) => s.isCompleted).length;
+  int get totalSubtasksCount => subtasks.length;
+
+  List<Attachment> get imageAttachments => 
+      attachments.where((a) => a.type == AttachmentType.image).toList();
+  
+  List<Attachment> get audioAttachments => 
+      attachments.where((a) => a.type == AttachmentType.audio).toList();
+  
+  List<Attachment> get textAttachments => 
+      attachments.where((a) => a.type == AttachmentType.text).toList();
 
   @override
   String toString() {

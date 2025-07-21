@@ -4,6 +4,7 @@ import 'services/todo_provider.dart';
 import 'services/database_service.dart';
 import 'services/notification_helper.dart';
 import 'services/preferences_service.dart';
+import 'services/attachment_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/app_theme.dart';
 import 'dart:ui';
@@ -30,6 +31,7 @@ void main() async {
     bool databaseInitialized = false;
     bool notificationInitialized = false;
     bool preferencesInitialized = false;
+    bool attachmentServiceInitialized = false;
     
     try {
       final databaseService = DatabaseService();
@@ -41,6 +43,18 @@ void main() async {
       debugPrint('Database error stack trace: $stackTrace');
       // Continue without database - app will work in read-only mode
       databaseInitialized = false;
+    }
+
+    try {
+      // Initialize attachment service
+      final attachmentService = AttachmentService();
+      await attachmentService.init();
+      attachmentServiceInitialized = true;
+      debugPrint('Attachment service initialized successfully');
+    } catch (e, stackTrace) {
+      debugPrint('Attachment service initialization error: $e');
+      debugPrint('Attachment error stack trace: $stackTrace');
+      attachmentServiceInitialized = false;
     }
 
     try {
@@ -68,7 +82,7 @@ void main() async {
       // Continue without notifications for now
     }
     
-    debugPrint('App initialization complete - Database: $databaseInitialized, Notifications: $notificationInitialized, Preferences: $preferencesInitialized');
+    debugPrint('App initialization complete - Database: $databaseInitialized, Notifications: $notificationInitialized, Preferences: $preferencesInitialized, Attachments: $attachmentServiceInitialized');
     
     runApp(MyApp(
       databaseInitialized: databaseInitialized,
