@@ -7,9 +7,10 @@
 这是一个现代化的Flutter待办事项管理应用，采用Material Design设计语言，提供直观的用户界面和强大的功能。应用支持任务分类、优先级管理、智能通知提醒、后台运行优化等功能，帮助用户高效管理日常任务。
 
 ## 界面预览
-<img width="900" height="1600" alt="MuMu-20250721-111836-061" src="https://github.com/user-attachments/assets/19d2987b-d0a5-402e-8129-ec348db63bb3" />
+<img width="250" height="400" alt="MuMu-20250721-111836-061" src="https://github.com/user-attachments/assets/19d2987b-d0a5-402e-8129-ec348db63bb3" />
 
-![Uploading MuMu-20250721-111919-907.png…]()
+<img width="250" height="400" alt="MuMu-20250721-111919-907" src="https://github.com/user-attachments/assets/1d5465bd-b886-4b74-b4dc-7f901b649e8e" />
+
 
 
 ## ✨ 功能特性
