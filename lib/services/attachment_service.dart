@@ -124,7 +124,7 @@ class AttachmentService {
 
   Future<bool> startRecording() async {
     if (!_isRecorderInitialized) return false;
-    
+
     try {
       if (!await requestAudioPermissions()) {
         return false;
@@ -154,10 +154,11 @@ class AttachmentService {
 
       final File audioFile = File(recordingPath);
       final fileStats = await audioFile.stat();
-      
+
       return Attachment(
         todoId: todoId,
-        fileName: 'Voice Recording ${DateTime.now().toString().substring(0, 19)}.aac',
+        fileName:
+            'Voice Recording ${DateTime.now().toString().substring(0, 19)}.aac',
         filePath: recordingPath,
         type: AttachmentType.audio,
         fileSize: fileStats.size,
@@ -198,7 +199,8 @@ class AttachmentService {
 
   // ============= TEXT METHODS =============
 
-  Future<Attachment> createTextAttachment(int todoId, String title, String content) async {
+  Future<Attachment> createTextAttachment(
+      int todoId, String title, String content) async {
     final documentsPath = await _documentsPath;
     final fileName = '${_uuid.v4()}.txt';
     final filePath = '$documentsPath/$fileName';
@@ -225,7 +227,16 @@ class AttachmentService {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'txt'],
+        allowedExtensions: [
+          'jpg',
+          'jpeg',
+          'png',
+          'gif',
+          'pdf',
+          'doc',
+          'docx',
+          'txt'
+        ],
         allowMultiple: false,
       );
 
@@ -245,7 +256,8 @@ class AttachmentService {
 
       // 根据文件类型创建附件
       AttachmentType type = AttachmentType.text;
-      if (['jpg', 'jpeg', 'png', 'gif'].contains(file.extension?.toLowerCase())) {
+      if (['jpg', 'jpeg', 'png', 'gif']
+          .contains(file.extension?.toLowerCase())) {
         type = AttachmentType.image;
       }
 

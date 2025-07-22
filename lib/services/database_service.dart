@@ -50,10 +50,10 @@ class DatabaseService {
         // Fallback to a simple path
         databasesPath = '/data/data/com.fxl.todo_list_app/databases';
       }
-      
+
       String path = join(databasesPath, 'todos.db');
       debugPrint('Database path: $path');
-      
+
       return await openDatabase(
         path,
         version: 2, // 升级版本号以支持新字段
@@ -116,7 +116,8 @@ class DatabaseService {
     if (oldVersion < 2) {
       // 添加新字段到现有的todos表
       try {
-        await db.execute('ALTER TABLE todos ADD COLUMN useMarkdown INTEGER NOT NULL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE todos ADD COLUMN useMarkdown INTEGER NOT NULL DEFAULT 0');
       } catch (e) {
         debugPrint('Error adding useMarkdown column: $e');
       }
@@ -155,30 +156,31 @@ class DatabaseService {
     try {
       final db = await database;
       debugPrint('Database instance obtained: $db');
-      
+
       // Validate required fields
       if (todo.title.trim().isEmpty) {
         throw Exception('Todo title cannot be empty');
       }
-      
+
       final todoMap = todo.toMap();
       debugPrint('Todo map: $todoMap');
-      
+
       // Ensure no null values for required fields
       final sanitizedMap = {
         ...todoMap,
         'title': todoMap['title']?.toString().trim() ?? '',
         'description': todoMap['description']?.toString() ?? '',
         'isCompleted': todoMap['isCompleted'] ?? 0,
-        'createdAt': todoMap['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
+        'createdAt':
+            todoMap['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
         'priority': todoMap['priority'] ?? 1,
         'category': todoMap['category'] ?? 0,
         'tags': todoMap['tags']?.toString() ?? '',
         'hasReminder': todoMap['hasReminder'] ?? 0,
       };
-      
+
       debugPrint('Sanitized map: $sanitizedMap');
-      
+
       final result = await db.insert('todos', sanitizedMap);
       debugPrint('Insert successful, ID: $result');
       return result;
@@ -214,7 +216,8 @@ class DatabaseService {
   }
 
   // Get todos by category
-  Future<List<todo_models.Todo>> getTodosByCategory(todo_models.Category category) async {
+  Future<List<todo_models.Todo>> getTodosByCategory(
+      todo_models.Category category) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'todos',
@@ -229,7 +232,8 @@ class DatabaseService {
   }
 
   // Get todos by priority
-  Future<List<todo_models.Todo>> getTodosByPriority(todo_models.Priority priority) async {
+  Future<List<todo_models.Todo>> getTodosByPriority(
+      todo_models.Priority priority) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
       'todos',
@@ -263,8 +267,10 @@ class DatabaseService {
   Future<List<todo_models.Todo>> getTodayTodos() async {
     final db = await database;
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).millisecondsSinceEpoch;
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59).millisecondsSinceEpoch;
+    final startOfDay =
+        DateTime(today.year, today.month, today.day).millisecondsSinceEpoch;
+    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59)
+        .millisecondsSinceEpoch;
 
     final List<Map<String, dynamic>> maps = await db.query(
       'todos',
@@ -317,19 +323,21 @@ class DatabaseService {
   // Get statistics
   Future<Map<String, int>> getStatistics() async {
     final db = await database;
-    
-    final totalResult = await db.rawQuery('SELECT COUNT(*) as count FROM todos');
-    final completedResult = await db.rawQuery('SELECT COUNT(*) as count FROM todos WHERE isCompleted = 1');
+
+    final totalResult =
+        await db.rawQuery('SELECT COUNT(*) as count FROM todos');
+    final completedResult = await db
+        .rawQuery('SELECT COUNT(*) as count FROM todos WHERE isCompleted = 1');
     final overdueResult = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM todos WHERE dueDate < ? AND isCompleted = 0 AND dueDate IS NOT NULL',
-      [DateTime.now().millisecondsSinceEpoch]
-    );
+        'SELECT COUNT(*) as count FROM todos WHERE dueDate < ? AND isCompleted = 0 AND dueDate IS NOT NULL',
+        [DateTime.now().millisecondsSinceEpoch]);
 
     return {
       'total': totalResult.first['count'] as int,
       'completed': completedResult.first['count'] as int,
       'overdue': overdueResult.first['count'] as int,
-      'pending': (totalResult.first['count'] as int) - (completedResult.first['count'] as int),
+      'pending': (totalResult.first['count'] as int) -
+          (completedResult.first['count'] as int),
     };
   }
 
@@ -338,11 +346,14 @@ class DatabaseService {
     final db = await database;
     final now = DateTime.now();
     final weekFromNow = now.add(const Duration(days: 7));
-    
+
     final List<Map<String, dynamic>> maps = await db.query(
       'todos',
       where: 'dueDate >= ? AND dueDate <= ? AND isCompleted = 0',
-      whereArgs: [now.millisecondsSinceEpoch, weekFromNow.millisecondsSinceEpoch],
+      whereArgs: [
+        now.millisecondsSinceEpoch,
+        weekFromNow.millisecondsSinceEpoch
+      ],
       orderBy: 'dueDate ASC',
     );
 
@@ -350,14 +361,16 @@ class DatabaseService {
   }
 
   // ============= SUBTASK METHODS =============
-  
+
   // Insert a new subtask
   Future<int> insertSubtask(Subtask subtask) async {
     final db = await database;
-    return await db.insert('subtasks', {
-      ...subtask.toMap(),
-      'order_index': subtask.order, // 映射到正确的列名
-    }..remove('order'));
+    return await db.insert(
+        'subtasks',
+        {
+          ...subtask.toMap(),
+          'order_index': subtask.order, // 映射到正确的列名
+        }..remove('order'));
   }
 
   // Get subtasks for a todo
@@ -413,7 +426,7 @@ class DatabaseService {
   }
 
   // ============= ATTACHMENT METHODS =============
-  
+
   // Insert a new attachment
   Future<int> insertAttachment(Attachment attachment) async {
     final db = await database;
@@ -467,7 +480,7 @@ class DatabaseService {
   }
 
   // ============= ENHANCED TODO METHODS =============
-  
+
   // Get a todo with its subtasks and attachments
   Future<todo_models.Todo?> getTodoWithDetails(int id) async {
     final db = await database;
@@ -492,15 +505,16 @@ class DatabaseService {
   // Get all todos with their subtasks and attachments
   Future<List<todo_models.Todo>> getAllTodosWithDetails() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('todos', orderBy: 'createdAt DESC');
+    final List<Map<String, dynamic>> maps =
+        await db.query('todos', orderBy: 'createdAt DESC');
 
     List<todo_models.Todo> todos = [];
-    
+
     for (var map in maps) {
       final todo = todo_models.Todo.fromMap(map);
       final subtasks = await getSubtasks(todo.id!);
       final attachments = await getAttachments(todo.id!);
-      
+
       todos.add(todo.copyWith(
         subtasks: subtasks,
         attachments: attachments,
@@ -513,11 +527,11 @@ class DatabaseService {
   // Delete todo with all related data
   Future<int> deleteTodoWithDetails(int id) async {
     final db = await database;
-    
+
     // Delete related data first
     await deleteSubtasksForTodo(id);
     await deleteAttachmentsForTodo(id);
-    
+
     // Then delete the todo
     return await db.delete(
       'todos',

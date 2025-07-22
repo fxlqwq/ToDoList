@@ -52,10 +52,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _handleFirstLaunchSetup() async {
     try {
       final preferencesService = PreferencesService();
-      
+
       // 检查是否是首次启动
       final isFirstLaunch = await preferencesService.isFirstLaunch();
-      
+
       if (isFirstLaunch && mounted) {
         // 显示使用说明
         await Future.delayed(const Duration(milliseconds: 1500));
@@ -65,31 +65,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             await preferencesService.setUsageGuideShown(true);
           }
         }
-        
+
         // 设置首次启动完成
         await preferencesService.setFirstLaunch(false);
       }
-      
+
       // 检查通知权限是否已请求过
-      final permissionAsked = await preferencesService.isNotificationPermissionAsked();
-      
+      final permissionAsked =
+          await preferencesService.isNotificationPermissionAsked();
+
       if (!permissionAsked && mounted) {
         await Future.delayed(const Duration(milliseconds: 1000));
         if (mounted) {
           // 使用新的权限请求系统
           final notificationHelper = NotificationHelper();
-          final results = await notificationHelper.requestAllPermissions(context);
-          
+          final results =
+              await notificationHelper.requestAllPermissions(context);
+
           await preferencesService.setNotificationPermissionAsked(true);
-          
+
           // 检查所有权限的结果
           final notificationGranted = results['notification'] ?? false;
           final batteryOptGranted = results['batteryOptimization'] ?? false;
           final alarmGranted = results['scheduleExactAlarm'] ?? false;
-          
+
           if (notificationGranted) {
             await preferencesService.setNotificationEnabled(true);
-            
+
             String message = '通知权限已启用！';
             if (batteryOptGranted) {
               message += ' 后台运行已优化，通知将更可靠。';
@@ -97,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             if (alarmGranted) {
               message += ' 精确提醒已启用。';
             }
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -120,10 +122,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           }
         }
       }
-      
+
       // 更新最后使用日期
       await preferencesService.updateLastUsedDate();
-      
     } catch (e) {
       debugPrint('首次启动设置失败: $e');
     }
@@ -152,6 +153,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         }
         break;
+      case 'reset_splash':
+        if (kDebugMode) {
+          await _resetSplashScreen();
+        }
+        break;
+    }
+  }
+
+  Future<void> _resetSplashScreen() async {
+    final preferencesService = PreferencesService();
+    await preferencesService.setFirstLaunch(true);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('首次启动状态已重置，重启应用将再次显示启动画面'),
+          backgroundColor: AppTheme.secondaryColor,
+        ),
+      );
     }
   }
 
@@ -192,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.5.0'),
+            Text('版本 1.5.6'),
             SizedBox(height: 12),
             Text(
               '功能特点：',
@@ -297,6 +316,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Icon(Icons.settings, size: 16),
                     SizedBox(width: 8),
                     Text('偏好设置调试'),
+                  ],
+                ),
+              ),
+            if (kDebugMode)
+              const PopupMenuItem<String>(
+                value: 'reset_splash',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, size: 16),
+                    SizedBox(width: 8),
+                    Text('重置启动画面'),
                   ],
                 ),
               ),
@@ -413,7 +443,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             iconSize: 20,
             icon: Icon(
               _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
-              color: _showFilters ? const Color(0xFF6366F1) : Colors.grey.shade600,
+              color:
+                  _showFilters ? const Color(0xFF6366F1) : Colors.grey.shade600,
             ),
             onPressed: () {
               setState(() {
@@ -433,7 +464,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           maxHeight: 85, // 进一步减少最大高度
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), // 进一步减少垂直padding
+          padding: const EdgeInsets.symmetric(
+              horizontal: 16, vertical: 6), // 进一步减少垂直padding
           child: Consumer<TodoProvider>(
             builder: (context, todoProvider, child) {
               return Row(
@@ -481,7 +513,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildFiltersSection() {
-    if (!_showFilters) return const SliverToBoxAdapter(child: SizedBox.shrink());
+    if (!_showFilters) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     return SliverToBoxAdapter(
       child: AnimatedContainer(
@@ -602,10 +636,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                             );
                           },
+                          onSubtaskToggle: (subtaskIndex) {
+                            todoProvider.toggleSubtaskCompletion(
+                              todoProvider.todos[index].id!,
+                              subtaskIndex,
+                            );
+                          },
                           onDelete: () async {
-                            final confirmed = await _showDeleteConfirmation(todoProvider.todos[index]);
+                            final confirmed = await _showDeleteConfirmation(
+                                todoProvider.todos[index]);
                             if (confirmed == true && context.mounted) {
-                              final success = await todoProvider.deleteTodo(todoProvider.todos[index].id!);
+                              final success = await todoProvider
+                                  .deleteTodo(todoProvider.todos[index].id!);
                               if (success && context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -707,7 +749,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

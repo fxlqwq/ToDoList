@@ -36,12 +36,12 @@ class SubtaskWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          
+
           // 子任务内容
           Expanded(
             child: isEditing ? _buildEditField() : _buildDisplayText(),
           ),
-          
+
           // 删除按钮
           if (onDelete != null)
             IconButton(
@@ -143,15 +143,15 @@ class _SubtaskListWidgetState extends State<SubtaskListWidget> {
                 ),
               ],
             ),
-            
+
             if (widget.subtasks.isNotEmpty || _showAddField) ...[
               const SizedBox(height: 12),
-              
+
               // 子任务列表
               ...widget.subtasks.asMap().entries.map((entry) {
                 final index = entry.key;
                 final subtask = entry.value;
-                
+
                 return SubtaskWidget(
                   subtask: subtask,
                   isEditing: editingIndex == index,
@@ -167,7 +167,7 @@ class _SubtaskListWidgetState extends State<SubtaskListWidget> {
                   },
                 );
               }),
-              
+
               // 添加新子任务的输入框
               if (_showAddField) ...[
                 const SizedBox(height: 8),
@@ -213,7 +213,7 @@ class _SubtaskListWidgetState extends State<SubtaskListWidget> {
                 ),
               ],
             ],
-            
+
             // 添加按钮
             if (widget.showAddButton && !_showAddField) ...[
               const SizedBox(height: 8),
@@ -226,7 +226,8 @@ class _SubtaskListWidgetState extends State<SubtaskListWidget> {
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('添加子任务'),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),

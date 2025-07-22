@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../services/preferences_service.dart';
 import '../utils/app_theme.dart';
 import 'home_screen.dart';
 
@@ -21,12 +22,12 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     _textController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -51,21 +52,34 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startAnimation() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _logoController.forward();
-    
-    await Future.delayed(const Duration(milliseconds: 800));
-    _textController.forward();
-    
-    await Future.delayed(const Duration(milliseconds: 2000));
-    _navigateToHome();
+    // 检查是否是首次启动
+    final preferencesService = PreferencesService();
+    final bool isFirstLaunch = await preferencesService.isFirstLaunch();
+
+    if (isFirstLaunch) {
+      // 首次启动，显示完整动画
+      await Future.delayed(const Duration(milliseconds: 500));
+      _logoController.forward();
+
+      await Future.delayed(const Duration(milliseconds: 800));
+      _textController.forward();
+
+      await Future.delayed(const Duration(milliseconds: 2000));
+
+      _navigateToHome();
+    } else {
+      // 不是首次启动，快速跳转
+      await Future.delayed(const Duration(milliseconds: 300));
+      _navigateToHome();
+    }
   }
 
   void _navigateToHome() {
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const HomeScreen(),
         transitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
@@ -102,17 +116,18 @@ class _SplashScreenState extends State<SplashScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF6366F1),
-              Color(0xFF8B5CF6),
-              Color(0xFFEC4899),
+              AppTheme.primaryColor,
+              AppTheme.secondaryColor,
             ],
           ),
         ),
-        child: Center(
+        child: SafeArea(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo Animation
+              const Spacer(),
+
+              // Logo animation
               ScaleTransition(
                 scale: _logoAnimation,
                 child: Container(
@@ -125,21 +140,21 @@ class _SplashScreenState extends State<SplashScreen>
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
                         blurRadius: 20,
-                        spreadRadius: 5,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
                   child: const Icon(
                     FontAwesomeIcons.listCheck,
-                    size: 50,
                     color: AppTheme.primaryColor,
+                    size: 60,
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 40),
-              
-              // Text Animations
+
+              // Text animation
               SlideTransition(
                 position: _slideAnimation,
                 child: FadeTransition(
@@ -149,37 +164,37 @@ class _SplashScreenState extends State<SplashScreen>
                       Text(
                         'TodoList',
                         style: TextStyle(
-                          color: Colors.white,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          color: Colors.white,
+                          letterSpacing: 2,
                         ),
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Organize your life',
+                        '高效任务管理助手',
                         style: TextStyle(
-                          color: Colors.white70,
                           fontSize: 16,
-                          letterSpacing: 0.8,
+                          color: Colors.white70,
+                          letterSpacing: 1,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 60),
-              
-              // Loading Indicator
-              FadeTransition(
-                opacity: _textAnimation,
-                child: const SizedBox(
-                  width: 30,
-                  height: 30,
+
+              const Spacer(),
+
+              // Loading indicator
+              const Padding(
+                padding: EdgeInsets.only(bottom: 50),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
               ),

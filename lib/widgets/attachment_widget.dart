@@ -56,14 +56,14 @@ class _AttachmentWidgetState extends State<AttachmentWidget> {
           );
         }
         return const Icon(Icons.image, size: 24);
-      
+
       case AttachmentType.audio:
         return Icon(
           _isPlaying ? Icons.pause_circle : Icons.play_circle,
           size: 24,
           color: Theme.of(context).primaryColor,
         );
-      
+
       case AttachmentType.text:
         return const Icon(Icons.text_snippet, size: 24);
     }
@@ -71,15 +71,15 @@ class _AttachmentWidgetState extends State<AttachmentWidget> {
 
   Widget? _buildSubtitle() {
     final parts = <String>[];
-    
+
     if (widget.attachment.formattedFileSize.isNotEmpty) {
       parts.add(widget.attachment.formattedFileSize);
     }
-    
+
     parts.add(widget.attachment.typeText);
-    
+
     if (parts.isEmpty) return null;
-    
+
     return Text(
       parts.join(' • '),
       style: const TextStyle(fontSize: 12),
@@ -161,12 +161,13 @@ class _AttachmentWidgetState extends State<AttachmentWidget> {
           _isPlaying = false;
         });
       } else {
-        final success = await _attachmentService.playAudio(widget.attachment.filePath);
+        final success =
+            await _attachmentService.playAudio(widget.attachment.filePath);
         if (success) {
           setState(() {
             _isPlaying = true;
           });
-          
+
           // 监听播放完成（简单实现）
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted && !_attachmentService.isPlaying) {
@@ -186,11 +187,12 @@ class _AttachmentWidgetState extends State<AttachmentWidget> {
 
   void _showTextDialog() async {
     String? content = widget.attachment.textContent;
-    
+
     if (content == null || content.isEmpty) {
-      content = await _attachmentService.readTextFile(widget.attachment.filePath);
+      content =
+          await _attachmentService.readTextFile(widget.attachment.filePath);
     }
-    
+
     if (content == null) {
       _showErrorSnackBar('无法读取文本文件');
       return;
@@ -263,21 +265,21 @@ class AttachmentListWidget extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             if (attachments.isNotEmpty) ...[
               const SizedBox(height: 12),
               // 附件列表
               ...attachments.asMap().entries.map((entry) {
                 final index = entry.key;
                 final attachment = entry.value;
-                
+
                 return AttachmentWidget(
                   attachment: attachment,
                   onDelete: onDelete != null ? () => onDelete!(index) : null,
                 );
               }),
             ],
-            
+
             // 添加按钮
             if (showAddButton) ...[
               const SizedBox(height: 8),

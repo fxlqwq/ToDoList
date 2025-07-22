@@ -45,7 +45,7 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
     if (oldWidget.text != widget.text) {
       _controller.text = widget.text;
     }
-    if (oldWidget.isEditing != widget.isEditing || 
+    if (oldWidget.isEditing != widget.isEditing ||
         oldWidget.useMarkdown != widget.useMarkdown) {
       _previewMode = !widget.isEditing && widget.useMarkdown;
     }
@@ -91,7 +91,8 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
         data: widget.text,
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
           p: widget.style ?? Theme.of(context).textTheme.bodyMedium,
-          blockquotePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          blockquotePadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           blockquoteDecoration: BoxDecoration(
             color: Colors.grey.shade100,
             border: Border(
@@ -101,10 +102,7 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
         ),
         extensionSet: md.ExtensionSet(
           md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-          [
-            md.EmojiSyntax(),
-            ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes
-          ],
+          [md.EmojiSyntax(), ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes],
         ),
       );
     } else {
@@ -160,9 +158,9 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
           ],
         ),
         const SizedBox(height: 8),
-        
+
         // 编辑器或预览
-        if (widget.useMarkdown && _previewMode) 
+        if (widget.useMarkdown && _previewMode)
           _buildPreview()
         else
           _buildTextField(),
@@ -202,7 +200,8 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
             )
           : MarkdownBody(
               data: widget.text,
-              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+              styleSheet:
+                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                 p: widget.style ?? Theme.of(context).textTheme.bodyMedium,
               ),
               extensionSet: md.ExtensionSet(
@@ -284,21 +283,22 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
   void _insertMarkdown(String prefix, String suffix) {
     final selection = _controller.selection;
     final text = _controller.text;
-    
+
     if (selection.isValid) {
       final before = text.substring(0, selection.start);
       final selected = text.substring(selection.start, selection.end);
       final after = text.substring(selection.end);
-      
+
       final newText = before + prefix + selected + suffix + after;
       _controller.text = newText;
-      
+
       // 设置新的光标位置
       final newSelection = TextSelection.collapsed(
-        offset: selection.start + prefix.length + selected.length + suffix.length,
+        offset:
+            selection.start + prefix.length + selected.length + suffix.length,
       );
       _controller.selection = newSelection;
-      
+
       widget.onTextChanged?.call(newText);
     }
   }

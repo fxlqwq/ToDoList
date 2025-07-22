@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/todo.dart';
+import '../models/subtask.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 
@@ -37,10 +38,8 @@ class TodoProvider with ChangeNotifier {
       .where((todo) => todo.priority == Priority.high && !todo.isCompleted)
       .toList();
 
-  List<Todo> get recentTodos => _todos
-      .where((todo) => !todo.isCompleted)
-      .take(5)
-      .toList();
+  List<Todo> get recentTodos =>
+      _todos.where((todo) => !todo.isCompleted).take(5).toList();
 
   // Initialize
   Future<void> initialize() async {
@@ -73,7 +72,7 @@ class TodoProvider with ChangeNotifier {
       final id = await _databaseService.insertTodo(todo);
       final newTodo = todo.copyWith(id: id);
       _todos.insert(0, newTodo);
-      
+
       // Schedule notification if needed
       if (newTodo.hasValidReminder) {
         try {
@@ -83,10 +82,10 @@ class TodoProvider with ChangeNotifier {
           // 不让通知失败阻止任务创建
         }
       }
-      
+
       _applyFilters();
       notifyListeners();
-      
+
       return true;
     } catch (e) {
       debugPrint('添加任务失败: $e');
@@ -101,7 +100,7 @@ class TodoProvider with ChangeNotifier {
       final index = _todos.indexWhere((t) => t.id == todo.id);
       if (index != -1) {
         _todos[index] = todo;
-        
+
         // Update notification
         try {
           await _notificationService.cancelNotification(todo.id!);
@@ -112,7 +111,7 @@ class TodoProvider with ChangeNotifier {
           debugPrint('更新任务通知失败: ${todo.title}, 错误: $e');
           // 不让通知失败阻止任务更新
         }
-        
+
         _applyFilters();
         notifyListeners();
       }
@@ -142,7 +141,7 @@ class TodoProvider with ChangeNotifier {
   Future<void> toggleTodoCompletion(Todo todo) async {
     try {
       final updatedTodo = todo.copyWith(isCompleted: !todo.isCompleted);
-      
+
       if (updatedTodo.isCompleted) {
         // Cancel notification when completed
         try {
@@ -150,7 +149,7 @@ class TodoProvider with ChangeNotifier {
         } catch (e) {
           debugPrint('取消通知失败: ${todo.title}, 错误: $e');
         }
-        
+
         // Show completion notification
         try {
           await _notificationService.showNotification(
@@ -171,11 +170,35 @@ class TodoProvider with ChangeNotifier {
           }
         }
       }
-      
+
       await updateTodo(updatedTodo);
     } catch (e, stackTrace) {
       debugPrint('切换任务完成状态失败: $e');
       debugPrint('切换状态错误堆栈跟踪: $stackTrace');
+    }
+  }
+
+  // Toggle subtask completion
+  Future<void> toggleSubtaskCompletion(int todoId, int subtaskIndex) async {
+    try {
+      final todoIndex = _todos.indexWhere((todo) => todo.id == todoId);
+      if (todoIndex == -1 ||
+          subtaskIndex < 0 ||
+          subtaskIndex >= _todos[todoIndex].subtasks.length) {
+        return;
+      }
+
+      final todo = _todos[todoIndex];
+      final updatedSubtasks = List<Subtask>.from(todo.subtasks);
+      updatedSubtasks[subtaskIndex] = updatedSubtasks[subtaskIndex].copyWith(
+        isCompleted: !updatedSubtasks[subtaskIndex].isCompleted,
+      );
+
+      final updatedTodo = todo.copyWith(subtasks: updatedSubtasks);
+      await updateTodo(updatedTodo);
+    } catch (e, stackTrace) {
+      debugPrint('切换子任务完成状态失败: $e');
+      debugPrint('子任务切换错误堆栈跟踪: $stackTrace');
     }
   }
 
@@ -237,7 +260,7 @@ class TodoProvider with ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       _filteredTodos = _filteredTodos.where((todo) {
         return todo.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               todo.description.toLowerCase().contains(_searchQuery.toLowerCase());
+            todo.description.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
 
@@ -257,33 +280,38 @@ class TodoProvider with ChangeNotifier {
 
     // Apply completion filter
     if (!_showCompleted) {
-      _filteredTodos = _filteredTodos
-          .where((todo) => !todo.isCompleted)
-          .toList();
+      _filteredTodos =
+          _filteredTodos.where((todo) => !todo.isCompleted).toList();
     }
 
     // Apply sorting
     _filteredTodos.sort((a, b) {
       switch (_sortBy) {
         case 'title':
-          return _sortAscending 
+          return _sortAscending
               ? a.title.compareTo(b.title)
               : b.title.compareTo(a.title);
         case 'dueDate':
           if (a.dueDate == null && b.dueDate == null) return 0;
           if (a.dueDate == null) return 1;
           if (b.dueDate == null) return -1;
-          return _sortAscending 
+          return _sortAscending
               ? a.dueDate!.compareTo(b.dueDate!)
               : b.dueDate!.compareTo(a.dueDate!);
         case 'priority':
-          final priorityOrder = {Priority.high: 3, Priority.medium: 2, Priority.low: 1};
+          final priorityOrder = {
+            Priority.high: 3,
+            Priority.medium: 2,
+            Priority.low: 1
+          };
           final aValue = priorityOrder[a.priority]!;
           final bValue = priorityOrder[b.priority]!;
-          return _sortAscending ? aValue.compareTo(bValue) : bValue.compareTo(aValue);
+          return _sortAscending
+              ? aValue.compareTo(bValue)
+              : bValue.compareTo(aValue);
         case 'createdAt':
         default:
-          return _sortAscending 
+          return _sortAscending
               ? a.createdAt.compareTo(b.createdAt)
               : b.createdAt.compareTo(a.createdAt);
       }
@@ -293,10 +321,11 @@ class TodoProvider with ChangeNotifier {
   // Schedule notifications for todos with reminders
   Future<void> _scheduleNotifications() async {
     try {
-      final todosWithValidReminders = _todos.where((todo) => todo.hasValidReminder).toList();
-      
+      final todosWithValidReminders =
+          _todos.where((todo) => todo.hasValidReminder).toList();
+
       debugPrint('找到 ${todosWithValidReminders.length} 个需要安排通知的任务');
-      
+
       for (final todo in todosWithValidReminders) {
         try {
           await _notificationService.scheduleNotification(todo);

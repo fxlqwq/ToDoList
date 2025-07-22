@@ -3,6 +3,7 @@ import 'subtask.dart';
 import 'attachment.dart';
 
 enum Priority { low, medium, high }
+
 enum Category { personal, work, health, shopping, education, other }
 
 class Todo {
@@ -38,11 +39,10 @@ class Todo {
     this.useMarkdown = false,
     List<Subtask>? subtasks,
     List<Attachment>? attachments,
-  }) : 
-    createdAt = createdAt ?? DateTime.now(),
-    tags = tags ?? [],
-    subtasks = subtasks ?? [],
-    attachments = attachments ?? [];
+  })  : createdAt = createdAt ?? DateTime.now(),
+        tags = tags ?? [],
+        subtasks = subtasks ?? [],
+        attachments = attachments ?? [];
 
   // Convert Todo to Map for database
   Map<String, dynamic> toMap() {
@@ -71,18 +71,20 @@ class Todo {
         title: map['title'] ?? '',
         description: map['description'] ?? '',
         isCompleted: map['isCompleted'] == 1,
-        createdAt: map['createdAt'] != null 
+        createdAt: map['createdAt'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['createdAt'])
             : DateTime.now(),
-        dueDate: map['dueDate'] != null 
+        dueDate: map['dueDate'] != null
             ? DateTime.fromMillisecondsSinceEpoch(map['dueDate'])
             : null,
-        priority: map['priority'] != null && map['priority'] < Priority.values.length
-            ? Priority.values[map['priority']]
-            : Priority.medium,
-        category: map['category'] != null && map['category'] < Category.values.length
-            ? Category.values[map['category']]
-            : Category.personal,
+        priority:
+            map['priority'] != null && map['priority'] < Priority.values.length
+                ? Priority.values[map['priority']]
+                : Priority.medium,
+        category:
+            map['category'] != null && map['category'] < Category.values.length
+                ? Category.values[map['category']]
+                : Category.personal,
         colorCode: map['colorCode'],
         tags: map['tags'] != null && map['tags'].toString().isNotEmpty
             ? map['tags'].toString().split(',')
@@ -153,23 +155,23 @@ class Todo {
     if (dueDate == null) return false;
     final today = DateTime.now();
     return dueDate!.year == today.year &&
-           dueDate!.month == today.month &&
-           dueDate!.day == today.day;
+        dueDate!.month == today.month &&
+        dueDate!.day == today.day;
   }
 
   // 检查提醒时间是否有效
   bool get hasValidReminder {
-    return hasReminder && 
-           reminderDate != null && 
-           reminderDate!.isAfter(DateTime.now()) &&
-           !isCompleted;
+    return hasReminder &&
+        reminderDate != null &&
+        reminderDate!.isAfter(DateTime.now()) &&
+        !isCompleted;
   }
 
   // 检查提醒是否已过期
   bool get isReminderOverdue {
-    return hasReminder && 
-           reminderDate != null && 
-           reminderDate!.isBefore(DateTime.now());
+    return hasReminder &&
+        reminderDate != null &&
+        reminderDate!.isBefore(DateTime.now());
   }
 
   // 获取安全的提醒时间（如果无效则返回null）
@@ -177,12 +179,12 @@ class Todo {
     if (!hasReminder || reminderDate == null || isCompleted) {
       return null;
     }
-    
+
     // 确保提醒时间在未来
     if (reminderDate!.isBefore(DateTime.now())) {
       return null;
     }
-    
+
     return reminderDate;
   }
 
@@ -245,15 +247,16 @@ class Todo {
     if (subtasks.isEmpty) {
       return isCompleted ? 1.0 : 0.0;
     }
-    
+
     final completedSubtasks = subtasks.where((s) => s.isCompleted).length;
     final totalSubtasks = subtasks.length;
-    final mainTaskWeight = 0.3; // 主任务权重30%
-    final subtasksWeight = 0.7; // 子任务权重70%
-    
+    const mainTaskWeight = 0.3; // 主任务权重30%
+    const subtasksWeight = 0.7; // 子任务权重70%
+
     double mainCompletion = isCompleted ? mainTaskWeight : 0.0;
-    double subtaskCompletion = (completedSubtasks / totalSubtasks) * subtasksWeight;
-    
+    double subtaskCompletion =
+        (completedSubtasks / totalSubtasks) * subtasksWeight;
+
     return mainCompletion + subtaskCompletion;
   }
 
@@ -263,13 +266,13 @@ class Todo {
   int get completedSubtasksCount => subtasks.where((s) => s.isCompleted).length;
   int get totalSubtasksCount => subtasks.length;
 
-  List<Attachment> get imageAttachments => 
+  List<Attachment> get imageAttachments =>
       attachments.where((a) => a.type == AttachmentType.image).toList();
-  
-  List<Attachment> get audioAttachments => 
+
+  List<Attachment> get audioAttachments =>
       attachments.where((a) => a.type == AttachmentType.audio).toList();
-  
-  List<Attachment> get textAttachments => 
+
+  List<Attachment> get textAttachments =>
       attachments.where((a) => a.type == AttachmentType.text).toList();
 
   @override

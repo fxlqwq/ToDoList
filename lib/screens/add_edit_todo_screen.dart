@@ -75,7 +75,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
     }
     _tags = List.from(todo.tags);
     _tagsController.text = _tags.join(', ');
-    
+
     // 新字段
     _useMarkdown = todo.useMarkdown;
     _subtasks = List.from(todo.subtasks);
@@ -228,7 +228,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? categoryColor.withOpacity(0.2)
@@ -251,8 +252,10 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                     Text(
                       categoryText,
                       style: TextStyle(
-                        color: isSelected ? categoryColor : Colors.grey.shade700,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color:
+                            isSelected ? categoryColor : Colors.grey.shade700,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -307,15 +310,18 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                     children: [
                       Icon(
                         _getPriorityIcon(priority),
-                        color: isSelected ? priorityColor : Colors.grey.shade600,
+                        color:
+                            isSelected ? priorityColor : Colors.grey.shade600,
                         size: 20,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         priorityText,
                         style: TextStyle(
-                          color: isSelected ? priorityColor : Colors.grey.shade700,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          color:
+                              isSelected ? priorityColor : Colors.grey.shade700,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.normal,
                           fontSize: 12,
                         ),
                       ),
@@ -447,7 +453,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                   icon: const Icon(Icons.notifications),
                   label: Text(
                     _selectedReminderDate != null
-                        ? DateFormat('MM月dd日 yyyy年').format(_selectedReminderDate!)
+                        ? DateFormat('MM月dd日 yyyy年')
+                            .format(_selectedReminderDate!)
                         : '选择提醒日期',
                   ),
                   style: OutlinedButton.styleFrom(
@@ -465,7 +472,9 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _selectedReminderDate != null ? _selectReminderTime : null,
+                  onPressed: _selectedReminderDate != null
+                      ? _selectReminderTime
+                      : null,
                   icon: const Icon(Icons.access_time),
                   label: Text(
                     _selectedReminderTime != null
@@ -572,7 +581,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
         ],
       ),
     );
-  }  // Helper methods
+  } // Helper methods
+
   String _getCategoryText(Category category) {
     switch (category) {
       case Category.personal:
@@ -775,7 +785,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               leading: const Icon(Icons.photo_library),
               title: const Text('从相册选择'),
               onTap: () async {
-                final attachment = await _attachmentService.pickImageFromGallery(0);
+                final attachment =
+                    await _attachmentService.pickImageFromGallery(0);
                 Navigator.of(context).pop(attachment);
               },
             ),
@@ -893,7 +904,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
           TextButton(
             onPressed: () async {
               if (contentController.text.trim().isNotEmpty) {
-                final attachment = await _attachmentService.createTextAttachment(
+                final attachment =
+                    await _attachmentService.createTextAttachment(
                   0,
                   titleController.text.trim(),
                   contentController.text.trim(),
@@ -1048,7 +1060,9 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
           ),
           TextButton(
             onPressed: () async {
-              final success = await context.read<TodoProvider>().deleteTodo(widget.todo!.id!);
+              final success = await context
+                  .read<TodoProvider>()
+                  .deleteTodo(widget.todo!.id!);
               if (mounted) {
                 Navigator.pop(context); // Close dialog
                 Navigator.pop(context); // Close screen

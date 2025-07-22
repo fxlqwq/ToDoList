@@ -7,20 +7,20 @@ class AppTheme {
   static const Color accentColor = Color(0xFFF59E0B); // Amber
   static const Color errorColor = Color(0xFFEF4444); // Red
   static const Color warningColor = Color(0xFFF97316); // Orange
-  
+
   static const Color backgroundColor = Color(0xFFF8FAFC); // Gray-50
   static const Color surfaceColor = Colors.white;
   static const Color cardColor = Colors.white;
-  
+
   static const Color textPrimary = Color(0xFF1F2937); // Gray-800
   static const Color textSecondary = Color(0xFF6B7280); // Gray-500
   static const Color textTertiary = Color(0xFF9CA3AF); // Gray-400
-  
+
   // Priority Colors
   static const Color lowPriorityColor = Color(0xFF10B981); // Green
   static const Color mediumPriorityColor = Color(0xFFF59E0B); // Amber
   static const Color highPriorityColor = Color(0xFFEF4444); // Red
-  
+
   // Category Colors
   static const Map<String, Color> categoryColors = {
     'personal': Color(0xFF8B5CF6), // Purple
@@ -35,7 +35,6 @@ class AppTheme {
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    
     colorScheme: const ColorScheme.light(
       primary: primaryColor,
       secondary: secondaryColor,
@@ -46,9 +45,7 @@ class AppTheme {
       onSurface: textPrimary,
       onError: Colors.white,
     ),
-
     scaffoldBackgroundColor: backgroundColor,
-    
     appBarTheme: const AppBarTheme(
       elevation: 0,
       backgroundColor: Colors.transparent,
@@ -60,16 +57,14 @@ class AppTheme {
         fontWeight: FontWeight.w600,
       ),
     ),
-
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 2,
       color: cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
     ),
-
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         elevation: 0,
@@ -85,7 +80,6 @@ class AppTheme {
         ),
       ),
     ),
-
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: primaryColor,
@@ -100,7 +94,6 @@ class AppTheme {
         ),
       ),
     ),
-
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: primaryColor,
@@ -110,14 +103,12 @@ class AppTheme {
         ),
       ),
     ),
-
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
       elevation: 4,
       shape: CircleBorder(),
     ),
-
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.grey.shade50,
@@ -139,7 +130,6 @@ class AppTheme {
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
-
     chipTheme: ChipThemeData(
       backgroundColor: Colors.grey.shade100,
       selectedColor: primaryColor.withOpacity(0.1),
@@ -150,7 +140,6 @@ class AppTheme {
         borderRadius: BorderRadius.circular(20),
       ),
     ),
-
     checkboxTheme: CheckboxThemeData(
       checkColor: WidgetStateProperty.all(Colors.white),
       fillColor: WidgetStateProperty.resolveWith((states) {
@@ -163,7 +152,6 @@ class AppTheme {
         borderRadius: BorderRadius.circular(4),
       ),
     ),
-
     textTheme: const TextTheme(
       displayLarge: TextStyle(
         color: textPrimary,

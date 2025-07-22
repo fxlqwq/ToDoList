@@ -10,6 +10,7 @@ class TodoCard extends StatefulWidget {
   final VoidCallback onToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final Function(int subtaskIndex)? onSubtaskToggle;
 
   const TodoCard({
     super.key,
@@ -17,6 +18,7 @@ class TodoCard extends StatefulWidget {
     required this.onToggle,
     required this.onEdit,
     required this.onDelete,
+    this.onSubtaskToggle,
   });
 
   @override
@@ -401,7 +403,7 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
 
   Widget _buildCategoryChip() {
     Color categoryColor = _getCategoryColor(widget.todo.category);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -459,13 +461,14 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
 
   bool _isOverdue() {
     if (widget.todo.dueDate == null) return false;
-    return widget.todo.dueDate!.isBefore(DateTime.now()) && !widget.todo.isCompleted;
+    return widget.todo.dueDate!.isBefore(DateTime.now()) &&
+        !widget.todo.isCompleted;
   }
 
   String _formatDueDate(DateTime dueDate) {
     final now = DateTime.now();
     final difference = dueDate.difference(now).inDays;
-    
+
     if (difference == 0) {
       return '今天 ${_formatTime(dueDate)}';
     } else if (difference == 1) {
@@ -484,7 +487,7 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
   String _formatCreatedDate(DateTime createdAt) {
     final now = DateTime.now();
     final difference = now.difference(createdAt).inDays;
-    
+
     if (difference == 0) {
       return '今天 ${_formatTime(createdAt)}';
     } else if (difference == 1) {
@@ -508,14 +511,16 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
         if (widget.todo.hasSubtasks) ...[
           _buildIndicatorChip(
             icon: Icons.checklist,
-            text: '${widget.todo.completedSubtasksCount}/${widget.todo.totalSubtasksCount}',
-            color: widget.todo.completedSubtasksCount == widget.todo.totalSubtasksCount 
-                ? Colors.green 
+            text:
+                '${widget.todo.completedSubtasksCount}/${widget.todo.totalSubtasksCount}',
+            color: widget.todo.completedSubtasksCount ==
+                    widget.todo.totalSubtasksCount
+                ? Colors.green
                 : Colors.orange,
           ),
           const SizedBox(width: 8),
         ],
-        
+
         // 附件指示器
         if (widget.todo.hasAttachments) ...[
           _buildIndicatorChip(
@@ -525,7 +530,7 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
           ),
           const SizedBox(width: 8),
         ],
-        
+
         // 进度条（如果有子任务）
         if (widget.todo.hasSubtasks) ...[
           const SizedBox(width: 4),
@@ -534,8 +539,8 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
               value: widget.todo.completionPercentage,
               backgroundColor: Colors.grey.shade300,
               valueColor: AlwaysStoppedAnimation<Color>(
-                widget.todo.completionPercentage == 1.0 
-                    ? Colors.green 
+                widget.todo.completionPercentage == 1.0
+                    ? Colors.green
                     : AppTheme.primaryColor,
               ),
               minHeight: 3,
@@ -597,51 +602,65 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
           ],
         ),
         const SizedBox(height: 8),
-        ...widget.todo.subtasks.map((subtask) => Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
-            children: [
-              Container(
-                width: 16,
-                height: 16,
-                margin: const EdgeInsets.only(left: 8, right: 8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: subtask.isCompleted
-                        ? Colors.green
-                        : Colors.grey.shade400,
-                    width: 1.5,
-                  ),
-                  color: subtask.isCompleted
-                      ? Colors.green
-                      : Colors.transparent,
+        ...widget.todo.subtasks.asMap().entries.map((entry) {
+          final index = entry.key;
+          final subtask = entry.value;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: InkWell(
+              onTap: widget.onSubtaskToggle != null
+                  ? () => widget.onSubtaskToggle!(index)
+                  : null,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 16,
+                      height: 16,
+                      margin: const EdgeInsets.only(left: 8, right: 8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: subtask.isCompleted
+                              ? Colors.green
+                              : Colors.grey.shade400,
+                          width: 1.5,
+                        ),
+                        color: subtask.isCompleted
+                            ? Colors.green
+                            : Colors.transparent,
+                      ),
+                      child: subtask.isCompleted
+                          ? const Icon(
+                              Icons.check,
+                              size: 10,
+                              color: Colors.white,
+                            )
+                          : null,
+                    ),
+                    Expanded(
+                      child: Text(
+                        subtask.title,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: subtask.isCompleted
+                              ? Colors.grey.shade500
+                              : Colors.grey.shade700,
+                          decoration: subtask.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: subtask.isCompleted
-                    ? const Icon(
-                        Icons.check,
-                        size: 10,
-                        color: Colors.white,
-                      )
-                    : null,
               ),
-              Expanded(
-                child: Text(
-                  subtask.title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: subtask.isCompleted
-                        ? Colors.grey.shade500
-                        : Colors.grey.shade700,
-                    decoration: subtask.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        )),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -672,7 +691,7 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
           children: widget.todo.attachments.map((attachment) {
             IconData icon;
             Color color;
-            
+
             switch (attachment.type) {
               case AttachmentType.image:
                 icon = Icons.image;
