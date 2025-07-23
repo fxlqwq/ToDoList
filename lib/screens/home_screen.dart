@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.5.8'),
+            Text('版本 1.6.0'),
             SizedBox(height: 12),
             Text(
               '功能特点：',
