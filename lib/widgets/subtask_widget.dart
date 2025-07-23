@@ -217,20 +217,47 @@ class _SubtaskListWidgetState extends State<SubtaskListWidget> {
             // 添加按钮
             if (widget.showAddButton && !_showAddField) ...[
               const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAddField = true;
-                  });
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('添加子任务'),
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _showAddField = true;
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('添加子任务'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _showBatchAddDialog,
+                      icon: const Icon(Icons.playlist_add, size: 18),
+                      label: const Text('批量添加多个子任务'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],
@@ -248,5 +275,141 @@ class _SubtaskListWidgetState extends State<SubtaskListWidget> {
     setState(() {
       _showAddField = false;
     });
+  }
+
+  void _showBatchAddDialog() {
+    final TextEditingController batchController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.playlist_add, size: 24),
+            SizedBox(width: 8),
+            Text('批量添加子任务'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '请输入子任务，每行一个：',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: batchController,
+                decoration: const InputDecoration(
+                  hintText: '例如：\n更新ubuntu\n重装windows\n备份数据\n清理系统缓存',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
+                  helperText: '支持粘贴多行文本',
+                  helperMaxLines: 2,
+                ),
+                maxLines: 8,
+                minLines: 4,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '每行内容将成为一个子任务，空行将被忽略',
+                        style: TextStyle(fontSize: 12, color: Colors.blue),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              final text = batchController.text.trim();
+              if (text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('请输入至少一个子任务'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              final lines = text.split('\n')
+                  .map((line) => line.trim())
+                  .where((line) => line.isNotEmpty)
+                  .toList();
+              
+              if (lines.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('没有找到有效的子任务内容'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              
+              // 添加所有子任务
+              int addedCount = 0;
+              for (String line in lines) {
+                if (line.length <= 200) { // 限制子任务标题长度
+                  widget.onAdd?.call(line);
+                  addedCount++;
+                } else {
+                  // 如果某行太长，截断并添加
+                  final truncated = '${line.substring(0, 197)}...';
+                  widget.onAdd?.call(truncated);
+                  addedCount++;
+                }
+              }
+              
+              Navigator.of(context).pop();
+              
+              // 显示成功消息
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ 已成功添加 $addedCount 个子任务'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                  action: SnackBarAction(
+                    label: '知道了',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    },
+                  ),
+                ),
+              );
+            },
+            child: const Text('确定添加'),
+          ),
+        ],
+      ),
+    );
   }
 }

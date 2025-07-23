@@ -1001,29 +1001,41 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
 
     final todoProvider = context.read<TodoProvider>();
     final dbService = DatabaseService();
-    bool success;
+    bool success = false;
+    String? errorMessage;
 
-    if (_isEditing) {
-      success = await todoProvider.updateTodo(todo);
-      if (success && todo.id != null) {
-        // 更新子任务
-        await _updateSubtasks(dbService, todo.id!);
-        // 更新附件
-        await _updateAttachments(dbService, todo.id!);
-      }
-    } else {
-      success = await todoProvider.addTodo(todo);
-      if (success) {
-        // 重新加载todos以获取最新的ID
-        await todoProvider.loadTodos();
-        final todos = todoProvider.allTodos;
-        final newTodo = todos.where((t) => t.title == todo.title).first;
-        if (newTodo.id != null) {
-          // 保存子任务
-          await _saveSubtasks(dbService, newTodo.id!);
-          // 保存附件
-          await _saveAttachments(dbService, newTodo.id!);
+    try {
+      if (_isEditing) {
+        success = await todoProvider.updateTodo(todo);
+        if (success && todo.id != null) {
+          // 更新子任务
+          await _updateSubtasks(dbService, todo.id!);
+          // 更新附件
+          await _updateAttachments(dbService, todo.id!);
         }
+      } else {
+        final newTodo = await todoProvider.addTodo(todo);
+        if (newTodo != null && newTodo.id != null) {
+          success = true;
+          // 保存子任务
+          if (_subtasks.isNotEmpty) {
+            await _saveSubtasks(dbService, newTodo.id!);
+          }
+          // 保存附件
+          if (_attachments.isNotEmpty) {
+            await _saveAttachments(dbService, newTodo.id!);
+          }
+        } else {
+          errorMessage = '任务创建失败';
+        }
+      }
+    } catch (e) {
+      debugPrint('保存任务或相关数据时发生错误: $e');
+      success = false;
+      if (_isEditing) {
+        errorMessage = '任务更新失败：$e';
+      } else {
+        errorMessage = '任务创建失败：$e';
       }
     }
 
@@ -1039,8 +1051,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('保存任务失败，请重试。'),
+        SnackBar(
+          content: Text(errorMessage ?? '保存任务失败，请重试。'),
           backgroundColor: AppTheme.errorColor,
         ),
       );

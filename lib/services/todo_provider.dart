@@ -67,7 +67,7 @@ class TodoProvider with ChangeNotifier {
   }
 
   // Add new todo
-  Future<bool> addTodo(Todo todo) async {
+  Future<Todo?> addTodo(Todo todo) async {
     try {
       final id = await _databaseService.insertTodo(todo);
       final newTodo = todo.copyWith(id: id);
@@ -86,10 +86,10 @@ class TodoProvider with ChangeNotifier {
       _applyFilters();
       notifyListeners();
 
-      return true;
+      return newTodo;
     } catch (e) {
       debugPrint('添加任务失败: $e');
-      return false;
+      return null;
     }
   }
 
