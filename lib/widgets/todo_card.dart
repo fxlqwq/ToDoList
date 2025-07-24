@@ -4,6 +4,7 @@ import '../models/todo.dart';
 import '../models/attachment.dart';
 import '../utils/app_theme.dart';
 import '../widgets/markdown_widget.dart';
+import '../widgets/reorderable_subtask_list.dart';
 
 class TodoCard extends StatefulWidget {
   final Todo todo;
@@ -12,6 +13,9 @@ class TodoCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onCopy;
   final Function(int subtaskIndex)? onSubtaskToggle;
+  final Function(int oldIndex, int newIndex)? onSubtaskReorder;
+  final Function(int subtaskIndex, String newTitle)? onSubtaskEdit;
+  final Function(int subtaskIndex)? onSubtaskDelete;
 
   const TodoCard({
     super.key,
@@ -21,6 +25,9 @@ class TodoCard extends StatefulWidget {
     required this.onDelete,
     required this.onCopy,
     this.onSubtaskToggle,
+    this.onSubtaskReorder,
+    this.onSubtaskEdit,
+    this.onSubtaskDelete,
   });
 
   @override
@@ -617,65 +624,78 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
           ],
         ),
         const SizedBox(height: 8),
-        ...widget.todo.subtasks.asMap().entries.map((entry) {
-          final index = entry.key;
-          final subtask = entry.value;
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: InkWell(
-              onTap: widget.onSubtaskToggle != null
-                  ? () => widget.onSubtaskToggle!(index)
-                  : null,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      margin: const EdgeInsets.only(left: 8, right: 8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
+        // 如果支持排序，使用可排序列表；否则使用原有显示方式
+        if (widget.onSubtaskReorder != null)
+          ReorderableSubtaskList(
+            subtasks: widget.todo.subtasks,
+            onSubtaskToggle: (index) => widget.onSubtaskToggle?.call(index),
+            onSubtaskDelete: (index) => widget.onSubtaskDelete?.call(index),
+            onSubtaskEdit: (index, newTitle) =>
+                widget.onSubtaskEdit?.call(index, newTitle),
+            onReorder: widget.onSubtaskReorder!,
+          )
+        else
+          ...widget.todo.subtasks.asMap().entries.map((entry) {
+            final index = entry.key;
+            final subtask = entry.value;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: InkWell(
+                onTap: widget.onSubtaskToggle != null
+                    ? () => widget.onSubtaskToggle!(index)
+                    : null,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 16,
+                        margin: const EdgeInsets.only(left: 8, right: 8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: subtask.isCompleted
+                                ? Colors.green
+                                : Colors.grey.shade400,
+                            width: 1.5,
+                          ),
                           color: subtask.isCompleted
                               ? Colors.green
-                              : Colors.grey.shade400,
-                          width: 1.5,
+                              : Colors.transparent,
                         ),
-                        color: subtask.isCompleted
-                            ? Colors.green
-                            : Colors.transparent,
+                        child: subtask.isCompleted
+                            ? const Icon(
+                                Icons.check,
+                                size: 10,
+                                color: Colors.white,
+                              )
+                            : null,
                       ),
-                      child: subtask.isCompleted
-                          ? const Icon(
-                              Icons.check,
-                              size: 10,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                    Expanded(
-                      child: Text(
-                        subtask.title,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: subtask.isCompleted
-                              ? Colors.grey.shade500
-                              : Colors.grey.shade700,
-                          decoration: subtask.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
+                      Expanded(
+                        child: Text(
+                          subtask.title,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: subtask.isCompleted
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade700,
+                            decoration: subtask.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
       ],
     );
   }

@@ -266,16 +266,137 @@ class TodoProvider with ChangeNotifier {
       }
 
       final todo = _todos[todoIndex];
-      final updatedSubtasks = List<Subtask>.from(todo.subtasks);
-      updatedSubtasks[subtaskIndex] = updatedSubtasks[subtaskIndex].copyWith(
-        isCompleted: !updatedSubtasks[subtaskIndex].isCompleted,
+      final subtask = todo.subtasks[subtaskIndex];
+
+      // 更新子任务状态
+      final updatedSubtask = subtask.copyWith(
+        isCompleted: !subtask.isCompleted,
       );
 
-      final updatedTodo = todo.copyWith(subtasks: updatedSubtasks);
-      await updateTodo(updatedTodo);
+      // 直接更新子任务到数据库
+      if (updatedSubtask.id != null) {
+        await _databaseService.updateSubtask(updatedSubtask);
+
+        // 更新本地状态
+        final updatedSubtasks = List<Subtask>.from(todo.subtasks);
+        updatedSubtasks[subtaskIndex] = updatedSubtask;
+
+        _todos[todoIndex] = todo.copyWith(subtasks: updatedSubtasks);
+        _applyFilters();
+        notifyListeners();
+      }
     } catch (e, stackTrace) {
       debugPrint('切换子任务完成状态失败: $e');
       debugPrint('子任务切换错误堆栈跟踪: $stackTrace');
+    }
+  }
+
+  // 重新排序子任务
+  Future<void> reorderSubtasks(int todoId, int oldIndex, int newIndex) async {
+    try {
+      final todoIndex = _todos.indexWhere((todo) => todo.id == todoId);
+      if (todoIndex == -1) return;
+
+      final todo = _todos[todoIndex];
+      final updatedSubtasks = List<Subtask>.from(todo.subtasks);
+
+      // 移动子任务到新位置
+      final movedSubtask = updatedSubtasks.removeAt(oldIndex);
+      updatedSubtasks.insert(newIndex, movedSubtask);
+
+      // 更新所有子任务的order字段
+      for (int i = 0; i < updatedSubtasks.length; i++) {
+        updatedSubtasks[i] = updatedSubtasks[i].copyWith(order: i);
+
+        // 更新数据库中的order
+        if (updatedSubtasks[i].id != null) {
+          await _databaseService.updateSubtask(updatedSubtasks[i]);
+        }
+      }
+
+      // 更新本地状态
+      _todos[todoIndex] = todo.copyWith(subtasks: updatedSubtasks);
+      _applyFilters();
+      notifyListeners();
+    } catch (e, stackTrace) {
+      debugPrint('重新排序子任务失败: $e');
+      debugPrint('子任务排序错误堆栈跟踪: $stackTrace');
+    }
+  }
+
+  // 编辑子任务
+  Future<void> editSubtask(
+      int todoId, int subtaskIndex, String newTitle) async {
+    try {
+      if (newTitle.trim().isEmpty) return;
+
+      final todoIndex = _todos.indexWhere((todo) => todo.id == todoId);
+      if (todoIndex == -1 ||
+          subtaskIndex < 0 ||
+          subtaskIndex >= _todos[todoIndex].subtasks.length) {
+        return;
+      }
+
+      final todo = _todos[todoIndex];
+      final subtask = todo.subtasks[subtaskIndex];
+
+      // 更新子任务标题
+      final updatedSubtask = subtask.copyWith(title: newTitle.trim());
+
+      // 直接更新子任务到数据库
+      if (updatedSubtask.id != null) {
+        await _databaseService.updateSubtask(updatedSubtask);
+
+        // 更新本地状态
+        final updatedSubtasks = List<Subtask>.from(todo.subtasks);
+        updatedSubtasks[subtaskIndex] = updatedSubtask;
+
+        _todos[todoIndex] = todo.copyWith(subtasks: updatedSubtasks);
+        _applyFilters();
+        notifyListeners();
+      }
+    } catch (e, stackTrace) {
+      debugPrint('编辑子任务失败: $e');
+      debugPrint('子任务编辑错误堆栈跟踪: $stackTrace');
+    }
+  }
+
+  // 删除子任务
+  Future<void> deleteSubtask(int todoId, int subtaskIndex) async {
+    try {
+      final todoIndex = _todos.indexWhere((todo) => todo.id == todoId);
+      if (todoIndex == -1 ||
+          subtaskIndex < 0 ||
+          subtaskIndex >= _todos[todoIndex].subtasks.length) {
+        return;
+      }
+
+      final todo = _todos[todoIndex];
+      final subtask = todo.subtasks[subtaskIndex];
+
+      // 从数据库删除子任务
+      if (subtask.id != null) {
+        await _databaseService.deleteSubtask(subtask.id!);
+
+        // 更新本地状态
+        final updatedSubtasks = List<Subtask>.from(todo.subtasks);
+        updatedSubtasks.removeAt(subtaskIndex);
+
+        // 重新设置剩余子任务的order
+        for (int i = 0; i < updatedSubtasks.length; i++) {
+          updatedSubtasks[i] = updatedSubtasks[i].copyWith(order: i);
+          if (updatedSubtasks[i].id != null) {
+            await _databaseService.updateSubtask(updatedSubtasks[i]);
+          }
+        }
+
+        _todos[todoIndex] = todo.copyWith(subtasks: updatedSubtasks);
+        _applyFilters();
+        notifyListeners();
+      }
+    } catch (e, stackTrace) {
+      debugPrint('删除子任务失败: $e');
+      debugPrint('子任务删除错误堆栈跟踪: $stackTrace');
     }
   }
 

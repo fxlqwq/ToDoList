@@ -211,14 +211,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.7.1'),
+            Text('版本 1.7.2'),
             SizedBox(height: 12),
             Text(
-              '1.7.1版本说明：',
+              '1.7.2版本说明：',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
             Text('• 子任务编辑功能'),
+            Text('• 子任务拖拽排序'),
+            Text('• 修复子任务状态同步问题'),
           ],
         ),
         actions: [
@@ -635,6 +637,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           },
                           onSubtaskToggle: (subtaskIndex) {
                             todoProvider.toggleSubtaskCompletion(
+                              todoProvider.todos[index].id!,
+                              subtaskIndex,
+                            );
+                          },
+                          onSubtaskReorder: (oldIndex, newIndex) {
+                            todoProvider.reorderSubtasks(
+                              todoProvider.todos[index].id!,
+                              oldIndex,
+                              newIndex,
+                            );
+                          },
+                          onSubtaskEdit: (subtaskIndex, newTitle) {
+                            todoProvider.editSubtask(
+                              todoProvider.todos[index].id!,
+                              subtaskIndex,
+                              newTitle,
+                            );
+                          },
+                          onSubtaskDelete: (subtaskIndex) {
+                            todoProvider.deleteSubtask(
                               todoProvider.todos[index].id!,
                               subtaskIndex,
                             );
