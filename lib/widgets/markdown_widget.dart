@@ -171,7 +171,15 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
   Widget _buildTextField() {
     return TextField(
       controller: _controller,
-      onChanged: widget.onTextChanged,
+      onChanged: (text) {
+        if (widget.onTextChanged != null) {
+          widget.onTextChanged!(text);
+        }
+        // 如果在预览模式，也需要刷新预览
+        if (_previewMode) {
+          setState(() {});
+        }
+      },
       decoration: InputDecoration(
         hintText: widget.hintText,
         border: const OutlineInputBorder(),
@@ -183,6 +191,7 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
   }
 
   Widget _buildPreview() {
+    final previewText = _controller.text; // 使用控制器的文本而不是widget.text
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -190,7 +199,7 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: widget.text.isEmpty
+      child: previewText.isEmpty
           ? Text(
               widget.hintText ?? 'Enter text to preview...',
               style: TextStyle(
@@ -199,7 +208,7 @@ class _MarkdownToggleWidgetState extends State<MarkdownToggleWidget> {
               ),
             )
           : MarkdownBody(
-              data: widget.text,
+              data: previewText,
               styleSheet:
                   MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                 p: widget.style ?? Theme.of(context).textTheme.bodyMedium,

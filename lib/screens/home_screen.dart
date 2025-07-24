@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.6.0'),
+            Text('版本 1.7.0'),
             SizedBox(height: 12),
             Text(
               '功能特点：',
@@ -220,6 +220,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             SizedBox(height: 4),
             Text('• 智能提醒，后台通知'),
             Text('• 任务分类与优先级管理'),
+            Text('• 长按复制任务功能'),
+            Text('• Markdown格式支持与实时预览'),
             Text('• 数据本地存储'),
             Text('• 简洁美观的界面设计'),
           ],
@@ -663,6 +665,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                 );
                               }
+                            }
+                          },
+                          onCopy: () async {
+                            final copiedTodo = await todoProvider
+                                .copyTodo(todoProvider.todos[index]);
+                            if (copiedTodo != null && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('任务已复制: ${copiedTodo.title}'),
+                                  backgroundColor: Colors.blue,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            } else if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('复制失败，请重试'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
                             }
                           },
                         ),

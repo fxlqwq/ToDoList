@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/todo.dart';
 import '../models/subtask.dart';
+import '../models/attachment.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 
@@ -134,6 +135,82 @@ class TodoProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('删除任务失败: $e');
       return false;
+    }
+  }
+
+  // Copy todo
+  Future<Todo?> copyTodo(Todo originalTodo) async {
+    try {
+      // 创建任务副本，重置ID和创建时间，标题加上"副本"
+      final copyTodo = Todo(
+        // id为null，让数据库自动分配新ID
+        title: '${originalTodo.title} (副本)',
+        description: originalTodo.description,
+        isCompleted: false, // 副本默认为未完成状态
+        createdAt: DateTime.now(),
+        dueDate: originalTodo.dueDate,
+        priority: originalTodo.priority,
+        category: originalTodo.category,
+        colorCode: originalTodo.colorCode,
+        tags: List<String>.from(originalTodo.tags),
+        hasReminder: false, // 重置提醒设置
+        reminderDate: null,
+        useMarkdown: originalTodo.useMarkdown,
+        subtasks: [], // 稍后添加
+        attachments: [], // 稍后添加
+      );
+
+      // 保存副本到数据库
+      final newId = await _databaseService.insertTodo(copyTodo);
+      final newTodo = copyTodo.copyWith(id: newId);
+
+      // 复制子任务
+      List<Subtask> copiedSubtasks = [];
+      for (final subtask in originalTodo.subtasks) {
+        final copiedSubtask = Subtask(
+          // id为null，让数据库自动分配新ID
+          todoId: newId,
+          title: subtask.title,
+          isCompleted: false, // 子任务副本也默认为未完成
+          createdAt: DateTime.now(),
+          order: subtask.order,
+        );
+        await _databaseService.insertSubtask(copiedSubtask);
+        copiedSubtasks.add(copiedSubtask);
+      }
+
+      // 复制附件
+      List<Attachment> copiedAttachments = [];
+      for (final attachment in originalTodo.attachments) {
+        final copiedAttachment = Attachment(
+          // id为null，让数据库自动分配新ID
+          todoId: newId,
+          fileName: attachment.fileName,
+          filePath: attachment.filePath,
+          type: attachment.type,
+          createdAt: DateTime.now(),
+          fileSize: attachment.fileSize,
+          textContent: attachment.textContent,
+        );
+        await _databaseService.insertAttachment(copiedAttachment);
+        copiedAttachments.add(copiedAttachment);
+      }
+
+      // 创建包含子任务和附件的完整副本
+      final completeTodo = newTodo.copyWith(
+        subtasks: copiedSubtasks,
+        attachments: copiedAttachments,
+      );
+
+      // 添加到本地列表
+      _todos.insert(0, completeTodo);
+      _applyFilters();
+      notifyListeners();
+
+      return completeTodo;
+    } catch (e) {
+      debugPrint('复制任务失败: $e');
+      return null;
     }
   }
 

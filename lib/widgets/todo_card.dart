@@ -10,6 +10,7 @@ class TodoCard extends StatefulWidget {
   final VoidCallback onToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onCopy;
   final Function(int subtaskIndex)? onSubtaskToggle;
 
   const TodoCard({
@@ -18,6 +19,7 @@ class TodoCard extends StatefulWidget {
     required this.onToggle,
     required this.onEdit,
     required this.onDelete,
+    required this.onCopy,
     this.onSubtaskToggle,
   });
 
@@ -46,8 +48,9 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
           widget.onEdit();
           return false; // 不删除卡片，只是触发编辑
         } else if (direction == DismissDirection.endToStart) {
-          // 向左滑动 - 删除需要确认
-          return await _showDeleteConfirmation();
+          // 向左滑动 - 删除，由主屏幕处理确认
+          widget.onDelete();
+          return false; // 不直接删除卡片，等待主屏幕处理结果
         }
         return false;
       },
@@ -56,6 +59,9 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
           setState(() {
             _isExpanded = !_isExpanded;
           });
+        },
+        onLongPress: () {
+          _showCopyConfirmation();
         },
         child: _buildTodoCard(),
       ),
@@ -123,20 +129,30 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
     );
   }
 
-  Future<bool?> _showDeleteConfirmation() async {
-    return showDialog<bool>(
+  void _showCopyConfirmation() {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除"${widget.todo.title}"吗？'),
+        title: const Text('复制任务'),
+        content: Text('确定要复制"${widget.todo.title}"吗？'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onCopy();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('已复制任务: ${widget.todo.title}'),
+                  backgroundColor: AppTheme.primaryColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text('复制', style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),
@@ -362,7 +378,6 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
         priorityText = '中';
         break;
       case Priority.low:
-      default:
         priorityColor = Colors.green.shade400;
         priorityIcon = FontAwesomeIcons.arrowDown;
         priorityText = '低';
@@ -437,7 +452,7 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
         return Colors.red.shade600;
       case Category.education:
         return Colors.orange.shade600;
-      default:
+      case Category.other:
         return Colors.grey.shade600;
     }
   }
@@ -454,8 +469,8 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
         return '健康';
       case Category.education:
         return '学习';
-      default:
-        return '';
+      case Category.other:
+        return '其他';
     }
   }
 
