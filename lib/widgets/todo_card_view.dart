@@ -88,7 +88,7 @@ class TodoGridView extends StatelessWidget {
               Text(
                 todo.title,
                 style: TextStyle(
-                  fontSize: isSmallScreen ? 12 : 13,
+                  fontSize: isSmallScreen ? 14 : 16, // 从12:13增加到14:16
                   fontWeight: FontWeight.w600,
                   decoration:
                       todo.isCompleted ? TextDecoration.lineThrough : null,
@@ -104,7 +104,7 @@ class TodoGridView extends StatelessWidget {
                 Text(
                   todo.description,
                   style: TextStyle(
-                    fontSize: isSmallScreen ? 9 : 10,
+                    fontSize: isSmallScreen ? 11 : 12, // 从9:10增加到11:12
                     color: Colors.grey.shade600,
                   ),
                   maxLines: 1,
@@ -215,7 +215,7 @@ class TodoGridView extends StatelessWidget {
             Text(
               '$completedSubtasks/$totalSubtasks',
               style: TextStyle(
-                fontSize: isSmallScreen ? 7 : 8,
+                fontSize: isSmallScreen ? 9 : 10, // 从7:8增加到9:10
                 fontWeight: FontWeight.bold,
                 color: progress == 1.0 ? Colors.green : Colors.orange,
               ),
@@ -264,7 +264,9 @@ class TodoGridView extends StatelessWidget {
                             child: subtask.isCompleted
                                 ? Icon(
                                     Icons.check,
-                                    size: isSmallScreen ? 10 : 12, // 增大对勾
+                                    size: isSmallScreen
+                                        ? 14
+                                        : 16, // 从10:12增加到14:16以匹配更大的复选框
                                     color: Colors.white,
                                   )
                                 : null,
@@ -274,7 +276,8 @@ class TodoGridView extends StatelessWidget {
                             child: Text(
                               subtask.title,
                               style: TextStyle(
-                                fontSize: isSmallScreen ? 8 : 9,
+                                fontSize:
+                                    isSmallScreen ? 10 : 11, // 从8:9增加到10:11
                                 color: subtask.isCompleted
                                     ? Colors.grey.shade500
                                     : Colors.grey.shade700,
