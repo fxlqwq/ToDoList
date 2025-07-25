@@ -12,7 +12,7 @@ class PreferencesService {
   /// 初始化偏好设置服务
   Future<void> init() async {
     if (_isInitialized) return;
-    
+
     try {
       _prefs = await SharedPreferences.getInstance();
       _isInitialized = true;
@@ -31,10 +31,12 @@ class PreferencesService {
 
   // 键名常量
   static const String _keyFirstLaunch = 'first_launch';
-  static const String _keyNotificationPermissionAsked = 'notification_permission_asked';
+  static const String _keyNotificationPermissionAsked =
+      'notification_permission_asked';
   static const String _keyUsageGuideShown = 'usage_guide_shown';
   static const String _keyNotificationEnabled = 'notification_enabled';
   static const String _keyLastUsedDate = 'last_used_date';
+  static const String _keyViewMode = 'view_mode'; // 新增：视图模式键
 
   /// 是否首次启动
   Future<bool> isFirstLaunch() async {
@@ -102,6 +104,18 @@ class PreferencesService {
     await setLastUsedDate(today);
   }
 
+  /// 获取保存的视图模式
+  Future<String?> getViewMode() async {
+    await _ensureInitialized();
+    return _prefs.getString(_keyViewMode);
+  }
+
+  /// 保存视图模式
+  Future<void> setViewMode(String viewMode) async {
+    await _ensureInitialized();
+    await _prefs.setString(_keyViewMode, viewMode);
+  }
+
   /// 清除所有偏好设置（用于调试或重置）
   Future<void> clearAll() async {
     await _ensureInitialized();
@@ -113,12 +127,12 @@ class PreferencesService {
     await _ensureInitialized();
     final keys = _prefs.getKeys();
     final Map<String, dynamic> allPrefs = {};
-    
+
     for (String key in keys) {
       final value = _prefs.get(key);
       allPrefs[key] = value;
     }
-    
+
     return allPrefs;
   }
 }

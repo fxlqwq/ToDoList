@@ -4,11 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/todo.dart' show Todo, Priority, Category;
+import '../models/view_mode.dart';
 import '../services/todo_provider.dart';
 import '../services/preferences_service.dart';
 import '../services/notification_helper.dart';
 import '../utils/app_theme.dart';
 import '../widgets/todo_card.dart';
+import '../widgets/todo_card_view.dart';
+import '../widgets/todo_compact_view.dart';
+import '../widgets/todo_grid_view.dart';
 import '../widgets/stats_card.dart';
 import '../widgets/category_filter_chip.dart';
 import '../widgets/priority_filter_chip.dart';
@@ -16,6 +20,7 @@ import '../widgets/usage_guide_dialog.dart';
 import 'add_edit_todo_screen.dart';
 import 'notification_settings_screen.dart';
 import 'preferences_test_screen.dart';
+import 'statistics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _fabAnimationController;
   late Animation<double> _fabAnimation;
   bool _showFilters = false;
+  TodoViewMode _currentViewMode = TodoViewMode.list;
 
   @override
   void initState() {
@@ -46,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TodoProvider>().loadTodos();
       _handleFirstLaunchSetup();
+      _loadViewMode(); // 加载保存的视图模式
     });
   }
 
@@ -130,15 +137,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _checkNotificationPermission() async {
-    // 这个方法现在被 _handleFirstLaunchSetup 替代
-    // 保留作为备用
+  /// 加载保存的视图模式
+  void _loadViewMode() async {
+    try {
+      final preferencesService = PreferencesService();
+      final savedViewMode = await preferencesService.getViewMode();
+
+      if (savedViewMode != null && mounted) {
+        final viewMode = TodoViewMode.values.firstWhere(
+          (mode) => mode.name == savedViewMode,
+          orElse: () => TodoViewMode.list,
+        );
+        setState(() {
+          _currentViewMode = viewMode;
+        });
+      }
+    } catch (e) {
+      debugPrint('加载视图模式失败: $e');
+    }
+  }
+
+  /// 保存视图模式
+  void _saveViewMode(TodoViewMode mode) async {
+    try {
+      final preferencesService = PreferencesService();
+      await preferencesService.setViewMode(mode.name);
+    } catch (e) {
+      debugPrint('保存视图模式失败: $e');
+    }
   }
 
   void _handleMenuSelection(String value) async {
     switch (value) {
       case 'usage_guide':
         await UsageGuideDialog.show(context);
+        break;
+      case 'statistics':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const StatisticsScreen(),
+          ),
+        );
         break;
       case 'about':
         _showAboutDialog();
@@ -211,16 +251,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.7.2'),
+            Text('版本 1.8.2'),
             SizedBox(height: 12),
             Text(
-              '1.7.2版本说明：',
+              '1.8.2版本说明：',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
-            Text('• 子任务编辑功能'),
-            Text('• 子任务拖拽排序'),
-            Text('• 修复子任务状态同步问题'),
+            Text('• 网格视图优化：解决卡片高度过高问题'),
+            Text('• 子任务交互改进：增大点击区域，提升操作体验'),
+            Text('• 宽高比智能调整：根据内容自适应卡片尺寸'),
+            Text('• 视图模式持久化：记住用户的视图偏好'),
+            Text('• 任务完成状态：所有视图均支持快速切换'),
           ],
         ),
         actions: [
@@ -231,6 +273,74 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  void _showViewModeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择视图模式'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: TodoViewMode.values.map((mode) {
+            return RadioListTile<TodoViewMode>(
+              title: Text(_getViewModeName(mode)),
+              subtitle: Text(_getViewModeDescription(mode)),
+              value: mode,
+              groupValue: _currentViewMode,
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _currentViewMode = value;
+                  });
+                  _saveViewMode(value); // 保存选择的视图模式
+                  Navigator.pop(context);
+                }
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  IconData _getViewModeIcon() {
+    switch (_currentViewMode) {
+      case TodoViewMode.list:
+        return FontAwesomeIcons.list;
+      case TodoViewMode.card:
+        return FontAwesomeIcons.idCard;
+      case TodoViewMode.grid:
+        return FontAwesomeIcons.th;
+      case TodoViewMode.compact:
+        return FontAwesomeIcons.bars;
+    }
+  }
+
+  String _getViewModeName(TodoViewMode mode) {
+    switch (mode) {
+      case TodoViewMode.list:
+        return '列表视图';
+      case TodoViewMode.card:
+        return '卡片视图';
+      case TodoViewMode.grid:
+        return '网格视图';
+      case TodoViewMode.compact:
+        return '紧凑视图';
+    }
+  }
+
+  String _getViewModeDescription(TodoViewMode mode) {
+    switch (mode) {
+      case TodoViewMode.list:
+        return '经典列表，功能完整';
+      case TodoViewMode.card:
+        return '卡片式，信息丰富';
+      case TodoViewMode.grid:
+        return '网格布局，紧凑展示';
+      case TodoViewMode.compact:
+        return '最简模式，节省空间';
+    }
   }
 
   @override
@@ -263,6 +373,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: Colors.transparent,
       elevation: 0,
       actions: [
+        // 视图切换按钮
+        IconButton(
+          onPressed: _showViewModeDialog,
+          icon: Icon(
+            _getViewModeIcon(),
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
         IconButton(
           onPressed: () {
             Navigator.push(
@@ -286,6 +405,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           onSelected: _handleMenuSelection,
           itemBuilder: (BuildContext context) => [
+            const PopupMenuItem<String>(
+              value: 'statistics',
+              child: Row(
+                children: [
+                  Icon(FontAwesomeIcons.chartPie, size: 16),
+                  SizedBox(width: 8),
+                  Text('统计数据'),
+                ],
+              ),
+            ),
             const PopupMenuItem<String>(
               value: 'usage_guide',
               child: Row(
@@ -457,14 +586,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildStatsSection() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return SliverToBoxAdapter(
       child: Container(
-        constraints: const BoxConstraints(
-          maxHeight: 85, // 进一步减少最大高度
+        constraints: BoxConstraints(
+          maxHeight: isSmallScreen ? 65 : 75, // 进一步减少高度
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 6), // 进一步减少垂直padding
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 12 : 16,
+            vertical: isSmallScreen ? 4 : 6,
+          ),
           child: Consumer<TodoProvider>(
             builder: (context, todoProvider, child) {
               return Row(
@@ -480,7 +614,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6), // 进一步减少间距
+                  SizedBox(width: isSmallScreen ? 4 : 6),
                   Expanded(
                     child: StatsCard(
                       title: '待办',
@@ -491,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6), // 进一步减少间距
+                  SizedBox(width: isSmallScreen ? 4 : 6),
                   Expanded(
                     child: StatsCard(
                       title: '已完成',
@@ -605,117 +739,378 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         }
 
-        return SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return AnimationConfiguration.staggeredList(
-                  position: index,
-                  duration: const Duration(milliseconds: 375),
-                  child: SlideAnimation(
-                    verticalOffset: 50.0,
-                    child: FadeInAnimation(
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: TodoCard(
-                          todo: todoProvider.todos[index],
-                          onToggle: () {
-                            todoProvider.toggleTodoCompletion(
-                              todoProvider.todos[index],
-                            );
-                          },
-                          onEdit: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => AddEditTodoScreen(
-                                  todo: todoProvider.todos[index],
-                                ),
-                              ),
-                            );
-                          },
-                          onSubtaskToggle: (subtaskIndex) {
-                            todoProvider.toggleSubtaskCompletion(
-                              todoProvider.todos[index].id!,
-                              subtaskIndex,
-                            );
-                          },
-                          onSubtaskReorder: (oldIndex, newIndex) {
-                            todoProvider.reorderSubtasks(
-                              todoProvider.todos[index].id!,
-                              oldIndex,
-                              newIndex,
-                            );
-                          },
-                          onSubtaskEdit: (subtaskIndex, newTitle) {
-                            todoProvider.editSubtask(
-                              todoProvider.todos[index].id!,
-                              subtaskIndex,
-                              newTitle,
-                            );
-                          },
-                          onSubtaskDelete: (subtaskIndex) {
-                            todoProvider.deleteSubtask(
-                              todoProvider.todos[index].id!,
-                              subtaskIndex,
-                            );
-                          },
-                          onDelete: () async {
-                            final confirmed = await _showDeleteConfirmation(
-                                todoProvider.todos[index]);
-                            if (confirmed == true && context.mounted) {
-                              final success = await todoProvider
-                                  .deleteTodo(todoProvider.todos[index].id!);
-                              if (success && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('任务已删除'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              } else if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('删除失败，请重试'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          onCopy: () async {
-                            final copiedTodo = await todoProvider
-                                .copyTodo(todoProvider.todos[index]);
-                            if (copiedTodo != null && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('任务已复制: ${copiedTodo.title}'),
-                                  backgroundColor: Colors.blue,
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            } else if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('复制失败，请重试'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-              childCount: todoProvider.todos.length,
-            ),
-          ),
-        );
+        // 根据视图模式选择不同的布局
+        switch (_currentViewMode) {
+          case TodoViewMode.grid:
+            return _buildGridView(todoProvider);
+          case TodoViewMode.card:
+            return _buildCardView(todoProvider);
+          case TodoViewMode.compact:
+            return _buildCompactView(todoProvider);
+          case TodoViewMode.list:
+            return _buildListView(todoProvider);
+        }
       },
     );
+  }
+
+  Widget _buildListView(TodoProvider todoProvider) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return AnimationConfiguration.staggeredList(
+              position: index,
+              duration: const Duration(milliseconds: 375),
+              child: SlideAnimation(
+                verticalOffset: 50.0,
+                child: FadeInAnimation(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: TodoCard(
+                      todo: todoProvider.todos[index],
+                      onToggle: () {
+                        todoProvider.toggleTodoCompletion(
+                          todoProvider.todos[index],
+                        );
+                      },
+                      onEdit: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddEditTodoScreen(
+                              todo: todoProvider.todos[index],
+                            ),
+                          ),
+                        );
+                      },
+                      onSubtaskToggle: (subtaskIndex) {
+                        todoProvider.toggleSubtaskCompletion(
+                          todoProvider.todos[index].id!,
+                          subtaskIndex,
+                        );
+                      },
+                      onSubtaskReorder: (oldIndex, newIndex) {
+                        todoProvider.reorderSubtasks(
+                          todoProvider.todos[index].id!,
+                          oldIndex,
+                          newIndex,
+                        );
+                      },
+                      onSubtaskEdit: (subtaskIndex, newTitle) {
+                        todoProvider.editSubtask(
+                          todoProvider.todos[index].id!,
+                          subtaskIndex,
+                          newTitle,
+                        );
+                      },
+                      onSubtaskDelete: (subtaskIndex) {
+                        todoProvider.deleteSubtask(
+                          todoProvider.todos[index].id!,
+                          subtaskIndex,
+                        );
+                      },
+                      onDelete: () async {
+                        final confirmed = await _showDeleteConfirmation(
+                            todoProvider.todos[index]);
+                        if (confirmed == true && context.mounted) {
+                          final success = await todoProvider
+                              .deleteTodo(todoProvider.todos[index].id!);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('任务已删除'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('删除失败，请重试'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      onCopy: () async {
+                        final copiedTodo = await todoProvider
+                            .copyTodo(todoProvider.todos[index]);
+                        if (copiedTodo != null && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('任务已复制: ${copiedTodo.title}'),
+                              backgroundColor: Colors.blue,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('复制失败，请重试'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+          childCount: todoProvider.todos.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardView(TodoProvider todoProvider) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return AnimationConfiguration.staggeredList(
+              position: index,
+              duration: const Duration(milliseconds: 375),
+              child: SlideAnimation(
+                verticalOffset: 50.0,
+                child: FadeInAnimation(
+                  child: TodoCardView(
+                    todo: todoProvider.todos[index],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddEditTodoScreen(
+                            todo: todoProvider.todos[index],
+                          ),
+                        ),
+                      );
+                    },
+                    onLongPress: () async {
+                      final confirmed = await _showDeleteConfirmation(
+                          todoProvider.todos[index]);
+                      if (confirmed == true && context.mounted) {
+                        final success = await todoProvider
+                            .deleteTodo(todoProvider.todos[index].id!);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('任务已删除'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onSubtaskToggle: (subtaskIndex) {
+                      todoProvider.toggleSubtaskCompletion(
+                        todoProvider.todos[index].id!,
+                        subtaskIndex,
+                      );
+                    },
+                    onMainTaskToggle: () {
+                      todoProvider.toggleTodoCompletion(
+                        todoProvider.todos[index],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+          childCount: todoProvider.todos.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactView(TodoProvider todoProvider) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return AnimationConfiguration.staggeredList(
+              position: index,
+              duration: const Duration(milliseconds: 200),
+              child: SlideAnimation(
+                verticalOffset: 30.0,
+                child: FadeInAnimation(
+                  child: TodoCompactView(
+                    todo: todoProvider.todos[index],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddEditTodoScreen(
+                            todo: todoProvider.todos[index],
+                          ),
+                        ),
+                      );
+                    },
+                    onLongPress: () async {
+                      final confirmed = await _showDeleteConfirmation(
+                          todoProvider.todos[index]);
+                      if (confirmed == true && context.mounted) {
+                        final success = await todoProvider
+                            .deleteTodo(todoProvider.todos[index].id!);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('任务已删除'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onSubtaskToggle: (subtaskIndex) {
+                      todoProvider.toggleSubtaskCompletion(
+                        todoProvider.todos[index].id!,
+                        subtaskIndex,
+                      );
+                    },
+                    onMainTaskToggle: () {
+                      todoProvider.toggleTodoCompletion(
+                        todoProvider.todos[index],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+          childCount: todoProvider.todos.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridView(TodoProvider todoProvider) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final padding = screenWidth < 400 ? 12.0 : 16.0;
+    final spacing = screenWidth < 400 ? 8.0 : 12.0;
+
+    // 动态计算列数，考虑平板和大屏设备
+    int crossAxisCount;
+    if (screenWidth < 600) {
+      crossAxisCount = screenWidth < 360 ? 1 : 2; // 手机模式
+    } else {
+      crossAxisCount = (screenWidth / 300).floor().clamp(2, 4); // 平板模式，最多4列
+    }
+
+    return SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: padding),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          childAspectRatio:
+              _calculateAspectRatio(screenWidth, todoProvider.todos),
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            return AnimationConfiguration.staggeredGrid(
+              position: index,
+              duration: const Duration(milliseconds: 375),
+              columnCount: crossAxisCount,
+              child: ScaleAnimation(
+                child: FadeInAnimation(
+                  child: TodoGridView(
+                    todo: todoProvider.todos[index],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddEditTodoScreen(
+                            todo: todoProvider.todos[index],
+                          ),
+                        ),
+                      );
+                    },
+                    onLongPress: () async {
+                      final confirmed = await _showDeleteConfirmation(
+                          todoProvider.todos[index]);
+                      if (confirmed == true && context.mounted) {
+                        final success = await todoProvider
+                            .deleteTodo(todoProvider.todos[index].id!);
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('任务已删除'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onSubtaskToggle: (subtaskIndex) {
+                      todoProvider.toggleSubtaskCompletion(
+                        todoProvider.todos[index].id!,
+                        subtaskIndex,
+                      );
+                    },
+                    onMainTaskToggle: () {
+                      todoProvider.toggleTodoCompletion(
+                        todoProvider.todos[index],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+          childCount: todoProvider.todos.length,
+        ),
+      ),
+    );
+  }
+
+  // 根据屏幕尺寸和任务内容动态计算高宽比
+  double _calculateAspectRatio(double screenWidth, List<Todo> todos) {
+    // 基础高宽比 - 1.8.2版本最终优化，平衡高度与内容显示
+    double baseRatio;
+
+    if (screenWidth < 400) {
+      baseRatio = 1.9; // 小屏设备合理高度
+    } else if (screenWidth < 600) {
+      baseRatio = 2.0; // 手机竖屏模式
+    } else if (screenWidth < 800) {
+      baseRatio = 2.1; // 大手机或小平板
+    } else {
+      baseRatio = 2.2; // 平板设备
+    }
+
+    // 计算平均子任务数量来调整高宽比
+    if (todos.isNotEmpty) {
+      final avgSubtasks =
+          todos.fold<double>(0, (sum, todo) => sum + todo.subtasks.length) /
+              todos.length;
+
+      // 根据子任务数量动态调整 - 精细化调整
+      if (avgSubtasks > 4) {
+        baseRatio *= 0.8; // 子任务很多时，增加高度
+      } else if (avgSubtasks > 2) {
+        baseRatio *= 0.9; // 子任务较多时，适当增高
+      } else if (avgSubtasks > 0) {
+        baseRatio *= 0.95; // 有子任务时，轻微增高
+      } else {
+        baseRatio *= 1.1; // 无子任务时，稍微降低高度
+      }
+
+      // 检查是否有任务包含描述，有描述的任务需要更多高度
+      final hasDescriptions = todos.any((todo) => todo.description.isNotEmpty);
+      if (hasDescriptions) {
+        baseRatio *= 0.9; // 有描述时适度增加高度
+      }
+    }
+
+    return baseRatio.clamp(0.9, 1.8); // 合理范围，避免过高或过宽
   }
 
   Widget _buildEmptyState() {

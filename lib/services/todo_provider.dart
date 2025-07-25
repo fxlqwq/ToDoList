@@ -262,11 +262,15 @@ class TodoProvider with ChangeNotifier {
       if (todoIndex == -1 ||
           subtaskIndex < 0 ||
           subtaskIndex >= _todos[todoIndex].subtasks.length) {
+        debugPrint('子任务切换失败: todoIndex=$todoIndex, subtaskIndex=$subtaskIndex');
         return;
       }
 
       final todo = _todos[todoIndex];
       final subtask = todo.subtasks[subtaskIndex];
+
+      debugPrint(
+          '切换子任务: ${subtask.title}, ID: ${subtask.id}, 当前状态: ${subtask.isCompleted}');
 
       // 更新子任务状态
       final updatedSubtask = subtask.copyWith(
@@ -284,6 +288,11 @@ class TodoProvider with ChangeNotifier {
         _todos[todoIndex] = todo.copyWith(subtasks: updatedSubtasks);
         _applyFilters();
         notifyListeners();
+
+        debugPrint(
+            '子任务状态已更新: ${updatedSubtask.title} -> ${updatedSubtask.isCompleted}');
+      } else {
+        debugPrint('子任务没有ID，无法更新: ${subtask.title}');
       }
     } catch (e, stackTrace) {
       debugPrint('切换子任务完成状态失败: $e');

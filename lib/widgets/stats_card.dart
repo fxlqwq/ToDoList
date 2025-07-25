@@ -16,16 +16,19 @@ class StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 400;
+
     return Container(
-      padding: const EdgeInsets.all(8), // 进一步减少内边距
+      padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
       decoration: BoxDecoration(
         gradient: gradient,
-        borderRadius: BorderRadius.circular(12), // 减小圆角
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: gradient.colors.first.withOpacity(0.2), // 减少阴影
-            blurRadius: 4, // 减小模糊半径
-            offset: const Offset(0, 2), // 减小偏移
+            color: gradient.colors.first.withOpacity(0.15),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -39,36 +42,36 @@ class StatsCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 11, // 进一步减小字体
+                    fontSize: isSmallScreen ? 10 : 11,
                     fontWeight: FontWeight.w500,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(4), // 进一步减小padding
+                padding: EdgeInsets.all(isSmallScreen ? 3 : 4),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(4), // 减小圆角
+                  borderRadius: BorderRadius.circular(3),
                 ),
                 child: Icon(
                   icon,
                   color: Colors.white,
-                  size: 12, // 进一步减小图标
+                  size: isSmallScreen ? 10 : 12,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4), // 进一步减小间距
+          SizedBox(height: isSmallScreen ? 2 : 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 18, // 进一步减小数值字体
+                fontSize: isSmallScreen ? 16 : 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
