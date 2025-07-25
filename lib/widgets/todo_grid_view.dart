@@ -226,10 +226,10 @@ class TodoGridView extends StatelessWidget {
         // 显示所有子任务，使用极致紧凑布局
         if (totalSubtasks > 0) ...[
           SizedBox(height: isSmallScreen ? 1 : 2),
-          // 增大子任务显示的最大高度，以适应更大的字体
+          // 增大子任务显示的最大高度，以适应更大的字体和更多子任务
           ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: isSmallScreen ? 50 : 60, // 增加高度限制以容纳更大字体
+              maxHeight: isSmallScreen ? 100 : 120, // 大幅增加高度限制以显示更多子任务
             ),
             child: SingleChildScrollView(
               // 如果子任务太多，允许滚动
@@ -240,14 +240,15 @@ class TodoGridView extends StatelessWidget {
                   return GestureDetector(
                     onTap: () => onSubtaskToggle?.call(index),
                     child: Container(
-                      margin: EdgeInsets.only(bottom: isSmallScreen ? 0.5 : 1),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 1), // 增加点击区域
+                      margin: EdgeInsets.only(bottom: isSmallScreen ? 1.5 : 2),
+                      padding: EdgeInsets.symmetric(
+                          vertical: isSmallScreen ? 3 : 4,
+                          horizontal: 2), // 增大点击区域
                       child: Row(
                         children: [
                           Container(
-                            width: isSmallScreen ? 10 : 12, // 增大复选框
-                            height: isSmallScreen ? 10 : 12,
+                            width: isSmallScreen ? 12 : 14, // 增大复选框
+                            height: isSmallScreen ? 12 : 14,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
@@ -263,7 +264,7 @@ class TodoGridView extends StatelessWidget {
                             child: subtask.isCompleted
                                 ? Icon(
                                     Icons.check,
-                                    size: isSmallScreen ? 7 : 8, // 增大对勾
+                                    size: isSmallScreen ? 10 : 12, // 增大对勾
                                     color: Colors.white,
                                   )
                                 : null,

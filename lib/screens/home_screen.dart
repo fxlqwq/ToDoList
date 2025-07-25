@@ -251,18 +251,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.8.2'),
+            Text('版本 1.8.3'),
             SizedBox(height: 12),
             Text(
-              '1.8.2版本说明：',
+              '1.8.3版本说明：',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
-            Text('• 网格视图优化：解决卡片高度过高问题'),
-            Text('• 子任务交互改进：增大点击区域，提升操作体验'),
-            Text('• 宽高比智能调整：根据内容自适应卡片尺寸'),
-            Text('• 视图模式持久化：记住用户的视图偏好'),
-            Text('• 任务完成状态：所有视图均支持快速切换'),
+            Text('• 子任务交互优化：解决复选框无法点击问题'),
+            Text('• 显示区域增强：子任务显示高度增加至100-120px'),
+            Text('• 点击体验改进：大幅增加子任务点击响应区域'),
+            Text('• 滑动功能保持：支持查看更多子任务内容'),
+            Text('• 响应式优化：针对不同屏幕尺寸精细调整'),
           ],
         ),
         actions: [
@@ -1077,13 +1077,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     double baseRatio;
 
     if (screenWidth < 400) {
-      baseRatio = 1.9; // 小屏设备合理高度
+      baseRatio = 1.2; // 小屏设备合理高度
     } else if (screenWidth < 600) {
-      baseRatio = 2.0; // 手机竖屏模式
+      baseRatio = 1.3; // 手机竖屏模式
     } else if (screenWidth < 800) {
-      baseRatio = 2.1; // 大手机或小平板
+      baseRatio = 1.4; // 大手机或小平板
     } else {
-      baseRatio = 2.2; // 平板设备
+      baseRatio = 1.5; // 平板设备
     }
 
     // 计算平均子任务数量来调整高宽比
