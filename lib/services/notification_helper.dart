@@ -59,6 +59,9 @@ class NotificationHelper {
         }
       }
       
+      if (!context.mounted) {
+        return {'notification': false, 'batteryOptimization': false, 'scheduleExactAlarm': false};
+      }
       return await _batteryService.requestAllPermissions(context);
     } catch (e) {
       debugPrint('请求所有权限失败: $e');

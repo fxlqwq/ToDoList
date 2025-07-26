@@ -31,7 +31,7 @@ class CategoryFilterChip extends StatelessWidget {
             }
           },
           backgroundColor: Colors.grey.shade100,
-          selectedColor: categoryColor.withOpacity(0.2),
+          selectedColor: categoryColor.withValues(alpha: 0.2),
           checkmarkColor: categoryColor,
           labelStyle: TextStyle(
             color: isSelected ? categoryColor : Colors.grey.shade700,

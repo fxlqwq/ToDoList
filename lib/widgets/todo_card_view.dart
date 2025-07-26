@@ -288,7 +288,7 @@ class TodoCardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: _getPriorityColor().withOpacity(0.1),
+        color: _getPriorityColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
@@ -306,7 +306,7 @@ class TodoCardView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getCategoryColor().withOpacity(0.1),
+        color: _getCategoryColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -409,7 +409,7 @@ class TodoCardView extends StatelessWidget {
       case Category.personal:
         return FontAwesomeIcons.user;
       case Category.shopping:
-        return FontAwesomeIcons.shoppingCart;
+        return FontAwesomeIcons.cartShopping;
       case Category.health:
         return FontAwesomeIcons.heartPulse;
       case Category.education:

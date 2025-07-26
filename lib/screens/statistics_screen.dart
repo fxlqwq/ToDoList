@@ -106,7 +106,7 @@ class StatisticsScreen extends StatelessWidget {
             _buildStatCard(
               '已逾期',
               overdueTasks.toString(),
-              FontAwesomeIcons.exclamationTriangle,
+              FontAwesomeIcons.triangleExclamation,
               Colors.red,
               isSmallScreen,
             ),
@@ -120,7 +120,7 @@ class StatisticsScreen extends StatelessWidget {
             _buildStatCard(
               '总子任务',
               totalSubtasks.toString(),
-              FontAwesomeIcons.tasks,
+              FontAwesomeIcons.listCheck,
               Colors.indigo,
               isSmallScreen,
             ),
@@ -134,7 +134,7 @@ class StatisticsScreen extends StatelessWidget {
             _buildStatCard(
               '子任务完成率',
               '${subtaskCompletionRate.toStringAsFixed(1)}%',
-              FontAwesomeIcons.percentage,
+              FontAwesomeIcons.percent,
               Colors.cyan,
               isSmallScreen,
             ),
@@ -147,13 +147,14 @@ class StatisticsScreen extends StatelessWidget {
   Widget _buildStatCard(String title, String value, IconData icon, Color color,
       bool isSmallScreen) {
     return Container(
+      height: isSmallScreen ? 130 : 150, // 进一步增加高度确保文字完整显示
       padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -166,7 +167,7 @@ class StatisticsScreen extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -184,16 +185,18 @@ class StatisticsScreen extends StatelessWidget {
               color: color,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: isSmallScreen ? 10 : 12,
-              color: Colors.grey.shade600,
+          const SizedBox(height: 6), // 增加间距
+          Flexible( // 使用Flexible包装文本
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: isSmallScreen ? 10 : 12,
+                color: Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2, // 允许两行显示
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -218,7 +221,7 @@ class StatisticsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -346,7 +349,7 @@ class StatisticsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -433,7 +436,7 @@ class StatisticsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -536,7 +539,7 @@ class StatisticsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -576,7 +579,7 @@ class StatisticsScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(

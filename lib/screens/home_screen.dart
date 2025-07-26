@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:provider/provider.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import '../models/todo.dart' show Todo, Priority, Category;
 import '../models/view_mode.dart';
 import '../services/todo_provider.dart';
@@ -167,6 +168,213 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _randomSelectTask() {
+    final todoProvider = Provider.of<TodoProvider>(context, listen: false);
+    final incompleteTodos = todoProvider.allTodos
+        .where((todo) => !todo.isCompleted)
+        .toList();
+
+    if (incompleteTodos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('没有未完成的任务可供选择'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 随机选择一个未完成的任务
+    final random = DateTime.now().millisecondsSinceEpoch;
+    final selectedTask = incompleteTodos[random % incompleteTodos.length];
+
+    // 显示选中的任务
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              FontAwesomeIcons.dice,
+              color: AppTheme.primaryColor,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text('随机选择的任务'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selectedTask.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (selectedTask.description.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      selectedTask.description,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildPriorityChip(selectedTask.priority),
+                      const SizedBox(width: 8),
+                      _buildCategoryChip(selectedTask.category),
+                    ],
+                  ),
+                  if (selectedTask.dueDate != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          FontAwesomeIcons.clock,
+                          size: 14,
+                          color: selectedTask.isOverdue ? Colors.red : Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '截止: ${DateFormat('MM/dd HH:mm').format(selectedTask.dueDate!)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: selectedTask.isOverdue ? Colors.red : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('关闭'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // 可以选择跳转到编辑任务页面
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddEditTodoScreen(todo: selectedTask),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('查看详情'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriorityChip(Priority priority) {
+    Color color;
+    String text;
+    switch (priority) {
+      case Priority.high:
+        color = Colors.red;
+        text = '高';
+        break;
+      case Priority.medium:
+        color = Colors.orange;
+        text = '中';
+        break;
+      case Priority.low:
+        color = Colors.green;
+        text = '低';
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(Category category) {
+    String text;
+    switch (category) {
+      case Category.personal:
+        text = '个人';
+        break;
+      case Category.work:
+        text = '工作';
+        break;
+      case Category.health:
+        text = '健康';
+        break;
+      case Category.shopping:
+        text = '购物';
+        break;
+      case Category.education:
+        text = '学习';
+        break;
+      case Category.other:
+        text = '其他';
+        break;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.secondaryColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.secondaryColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppTheme.secondaryColor,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   void _handleMenuSelection(String value) async {
     switch (value) {
       case 'usage_guide':
@@ -226,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -251,18 +459,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.8.3'),
+            Text('版本 1.8.4'),
             SizedBox(height: 12),
             Text(
-              '1.8.3版本说明：',
+              '1.8.4版本说明：',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
-            Text('• 子任务交互优化：解决复选框无法点击问题'),
-            Text('• 显示区域增强：子任务显示高度增加至100-120px'),
-            Text('• 点击体验改进：大幅增加子任务点击响应区域'),
-            Text('• 滑动功能保持：支持查看更多子任务内容'),
-            Text('• 响应式优化：针对不同屏幕尺寸精细调整'),
+            Text('• 统计页面优化：修复统计卡片高度过窄问题'),
+            Text('• 显示体验改进：统计数据文字完整显示'),
+            Text('• 随机任务功能：新增主界面随机选择任务功能'),
+            Text('• 代码质量提升：修复所有lint警告，提升性能'),
+            Text('• 工具完善：添加代码行数统计脚本'),
           ],
         ),
         actions: [
@@ -311,7 +519,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       case TodoViewMode.card:
         return FontAwesomeIcons.idCard;
       case TodoViewMode.grid:
-        return FontAwesomeIcons.th;
+        return FontAwesomeIcons.tableCells;
       case TodoViewMode.compact:
         return FontAwesomeIcons.bars;
     }
@@ -373,6 +581,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: Colors.transparent,
       elevation: 0,
       actions: [
+        // 随机选择任务按钮
+        IconButton(
+          onPressed: _randomSelectTask,
+          icon: const Icon(
+            FontAwesomeIcons.dice,
+            color: Colors.white,
+            size: 20,
+          ),
+          tooltip: '随机选择任务',
+        ),
         // 视图切换按钮
         IconButton(
           onPressed: _showViewModeDialog,
@@ -493,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       return Text(
                         '${todoProvider.pendingTodos} 个待办，${todoProvider.completedTodos} 个已完成',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 14,
                         ),
                       );
@@ -1073,17 +1291,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // 根据屏幕尺寸和任务内容动态计算高宽比
   double _calculateAspectRatio(double screenWidth, List<Todo> todos) {
-    // 基础高宽比 - 1.8.2版本最终优化，平衡高度与内容显示
+    // 基础高宽比 - 降低比例以增加卡片高度
     double baseRatio;
 
     if (screenWidth < 400) {
-      baseRatio = 1.2; // 小屏设备合理高度
+      baseRatio = 1.2; // 小屏设备增加高度
     } else if (screenWidth < 600) {
       baseRatio = 1.3; // 手机竖屏模式
     } else if (screenWidth < 800) {
       baseRatio = 1.4; // 大手机或小平板
     } else {
-      baseRatio = 1.5; // 平板设备
+      baseRatio = 1.4; // 平板设备
     }
 
     // 计算平均子任务数量来调整高宽比
@@ -1094,23 +1312,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
       // 根据子任务数量动态调整 - 精细化调整
       if (avgSubtasks > 4) {
-        baseRatio *= 0.8; // 子任务很多时，增加高度
+        baseRatio *= 0.7; // 子任务很多时，显著增加高度
       } else if (avgSubtasks > 2) {
-        baseRatio *= 0.9; // 子任务较多时，适当增高
+        baseRatio *= 0.8; // 子任务较多时，适当增高
       } else if (avgSubtasks > 0) {
-        baseRatio *= 0.95; // 有子任务时，轻微增高
+        baseRatio *= 0.9; // 有子任务时，轻微增高
       } else {
-        baseRatio *= 1.1; // 无子任务时，稍微降低高度
+        baseRatio *= 1.0; // 无子任务时，保持基础高度
       }
 
       // 检查是否有任务包含描述，有描述的任务需要更多高度
       final hasDescriptions = todos.any((todo) => todo.description.isNotEmpty);
       if (hasDescriptions) {
-        baseRatio *= 0.9; // 有描述时适度增加高度
+        baseRatio *= 0.85; // 有描述时增加更多高度
       }
     }
 
-    return baseRatio.clamp(0.9, 1.8); // 合理范围，避免过高或过宽
+    return baseRatio.clamp(0.7, 1.5); // 调整范围，允许更高的卡片
   }
 
   Widget _buildEmptyState() {
@@ -1158,13 +1376,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Theme.of(context).primaryColor.withOpacity(0.9),
+                  Theme.of(context).primaryColor.withValues(alpha: 0.9),
                   Theme.of(context).primaryColor,
                 ],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).primaryColor.withOpacity(0.3),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -1191,7 +1409,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(

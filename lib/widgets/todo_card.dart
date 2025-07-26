@@ -175,14 +175,14 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
           color: widget.todo.isCompleted
-              ? AppTheme.secondaryColor.withOpacity(0.3)
+              ? AppTheme.secondaryColor.withValues(alpha: 0.3)
               : Colors.transparent,
           width: 2,
         ),
@@ -394,10 +394,10 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: priorityColor.withOpacity(0.1),
+        color: priorityColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: priorityColor.withOpacity(0.3),
+          color: priorityColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -429,10 +429,10 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: categoryColor.withOpacity(0.1),
+        color: categoryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: categoryColor.withOpacity(0.3),
+          color: categoryColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -582,9 +582,9 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -745,9 +745,9 @@ class _TodoCardState extends State<TodoCard> with TickerProviderStateMixin {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withOpacity(0.3)),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

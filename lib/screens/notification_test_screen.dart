@@ -49,6 +49,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
     try {
       final success = await _notificationHelper.safeTestNotification();
       
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? '测试通知发送成功！' : '测试通知发送失败'),
@@ -56,6 +57,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('测试通知时出错: $e'),
@@ -77,6 +79,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
     try {
       final granted = await _notificationHelper.safeRequestPermissions();
       
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(granted ? '权限已授予！' : '权限授予失败'),
@@ -86,6 +89,7 @@ class _NotificationTestScreenState extends State<NotificationTestScreen> {
       
       await _checkNotificationStatus();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('请求权限时出错: $e'),

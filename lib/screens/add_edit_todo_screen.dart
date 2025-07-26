@@ -232,7 +232,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? categoryColor.withOpacity(0.2)
+                      ? categoryColor.withValues(alpha: 0.2)
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
@@ -298,7 +298,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? priorityColor.withOpacity(0.2)
+                        ? priorityColor.withValues(alpha: 0.2)
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
@@ -536,7 +536,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
             children: _tags.map((tag) {
               return Chip(
                 label: Text('#$tag'),
-                backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                 labelStyle: const TextStyle(
                   color: AppTheme.primaryColor,
                   fontSize: 12,
@@ -556,7 +556,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -785,17 +785,21 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
               leading: const Icon(Icons.photo_library),
               title: const Text('从相册选择'),
               onTap: () async {
+                final navigator = Navigator.of(context);
                 final attachment =
                     await _attachmentService.pickImageFromGallery(0);
-                Navigator.of(context).pop(attachment);
+                if (!mounted) return;
+                navigator.pop(attachment);
               },
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('拍照'),
               onTap: () async {
+                final navigator = Navigator.of(context);
                 final attachment = await _attachmentService.takePhoto(0);
-                Navigator.of(context).pop(attachment);
+                if (!mounted) return;
+                navigator.pop(attachment);
               },
             ),
           ],
@@ -853,11 +857,13 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
         actions: [
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               final attachment = await _attachmentService.stopRecording(0);
               setState(() {
                 _isRecording = false;
               });
-              Navigator.of(context).pop(attachment);
+              if (!mounted) return;
+              navigator.pop(attachment);
             },
             child: const Text('停止录音'),
           ),
@@ -903,14 +909,16 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
           ),
           TextButton(
             onPressed: () async {
-              if (contentController.text.trim().isNotEmpty) {
+              if (titleController.text.trim().isNotEmpty) {
+                final navigator = Navigator.of(context);
                 final attachment =
                     await _attachmentService.createTextAttachment(
                   0,
                   titleController.text.trim(),
                   contentController.text.trim(),
                 );
-                Navigator.of(context).pop(attachment);
+                if (!mounted) return;
+                navigator.pop(attachment);
               }
             },
             child: const Text('确定'),
@@ -924,16 +932,65 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
   Future<void> _saveSubtasks(DatabaseService dbService, int todoId) async {
     for (int i = 0; i < _subtasks.length; i++) {
       final subtask = _subtasks[i].copyWith(todoId: todoId, order: i);
-      await dbService.insertSubtask(subtask);
+      final newId = await dbService.insertSubtask(subtask);
+      // 更新本地子任务的ID
+      _subtasks[i] = _subtasks[i].copyWith(id: newId, todoId: todoId, order: i);
     }
   }
 
   // 更新子任务
   Future<void> _updateSubtasks(DatabaseService dbService, int todoId) async {
-    // 删除现有的子任务
-    await dbService.deleteSubtasksForTodo(todoId);
-    // 重新插入子任务
-    await _saveSubtasks(dbService, todoId);
+    try {
+      // 获取现有的子任务
+      final existingSubtasks = await dbService.getSubtasks(todoId);
+      final existingSubtasksMap = {for (var s in existingSubtasks) s.id!: s};
+      
+      // 需要删除的子任务ID
+      final subtasksToDelete = <int>[];
+      // 需要更新的子任务
+      final subtasksToUpdate = <Subtask>[];
+      // 需要插入的子任务
+      final subtasksToInsert = <Subtask>[];
+
+      for (int i = 0; i < _subtasks.length; i++) {
+        final subtask = _subtasks[i].copyWith(todoId: todoId, order: i);
+        
+        if (subtask.id != null && existingSubtasksMap.containsKey(subtask.id)) {
+          // 子任务已存在，更新它
+          subtasksToUpdate.add(subtask);
+          existingSubtasksMap.remove(subtask.id);
+        } else {
+          // 新子任务，插入它
+          subtasksToInsert.add(subtask);
+        }
+      }
+
+      // 剩余的现有子任务需要删除
+      subtasksToDelete.addAll(existingSubtasksMap.keys);
+
+      // 执行数据库操作
+      for (final subtaskId in subtasksToDelete) {
+        await dbService.deleteSubtask(subtaskId);
+      }
+      
+      for (final subtask in subtasksToUpdate) {
+        await dbService.updateSubtask(subtask);
+      }
+      
+      for (final subtask in subtasksToInsert) {
+        final newId = await dbService.insertSubtask(subtask);
+        // 更新本地子任务的ID
+        final index = _subtasks.indexWhere((s) => s.id == null && s.title == subtask.title);
+        if (index != -1) {
+          _subtasks[index] = _subtasks[index].copyWith(id: newId);
+        }
+      }
+    } catch (e) {
+      debugPrint('更新子任务失败: $e');
+      // 如果智能更新失败，回退到原始方法
+      await dbService.deleteSubtasksForTodo(todoId);
+      await _saveSubtasks(dbService, todoId);
+    }
   }
 
   // 保存附件
@@ -1072,20 +1129,21 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               final success = await context
                   .read<TodoProvider>()
                   .deleteTodo(widget.todo!.id!);
-              if (mounted) {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Close screen
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('任务删除成功！'),
-                      backgroundColor: AppTheme.secondaryColor,
-                    ),
-                  );
-                }
+              if (!mounted) return;
+              navigator.pop(); // Close dialog
+              navigator.pop(); // Close screen
+              if (success) {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('任务删除成功！'),
+                    backgroundColor: AppTheme.secondaryColor,
+                  ),
+                );
               }
             },
             child: const Text('删除'),

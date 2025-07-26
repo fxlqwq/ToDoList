@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 偏好设置服务，用于管理用户的偏好设置
@@ -17,7 +18,7 @@ class PreferencesService {
       _prefs = await SharedPreferences.getInstance();
       _isInitialized = true;
     } catch (e) {
-      print('偏好设置服务初始化失败: $e');
+      debugPrint('偏好设置服务初始化失败: $e');
       rethrow;
     }
   }

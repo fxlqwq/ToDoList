@@ -42,8 +42,8 @@ class TodoCompactView extends StatelessWidget {
               GestureDetector(
                 onTap: onMainTaskToggle,
                 child: Container(
-                  width: 16,
-                  height: 16,
+                  width: 20, // 增大紧凑视图的主任务复选框
+                  height: 20,
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -57,7 +57,7 @@ class TodoCompactView extends StatelessWidget {
                   child: todo.isCompleted
                       ? const Icon(
                           Icons.check,
-                          size: 10,
+                          size: 12, // 增大check图标
                           color: Colors.white,
                         )
                       : null,
@@ -142,7 +142,7 @@ class TodoCompactView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(

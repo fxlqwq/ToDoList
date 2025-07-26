@@ -102,7 +102,7 @@ class _UsageGuideDialogState extends State<UsageGuideDialog> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -171,7 +171,7 @@ class _UsageGuideDialogState extends State<UsageGuideDialog> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: step.color.withOpacity(0.1),
+                          color: step.color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(40),
                         ),
                         child: Icon(

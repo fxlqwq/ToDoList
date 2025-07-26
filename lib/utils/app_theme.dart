@@ -132,7 +132,7 @@ class AppTheme {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: Colors.grey.shade100,
-      selectedColor: primaryColor.withOpacity(0.1),
+      selectedColor: primaryColor.withValues(alpha: 0.1),
       labelStyle: const TextStyle(color: textPrimary),
       secondaryLabelStyle: const TextStyle(color: primaryColor),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

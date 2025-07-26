@@ -31,7 +31,7 @@ class PriorityFilterChip extends StatelessWidget {
             }
           },
           backgroundColor: Colors.grey.shade100,
-          selectedColor: priorityColor.withOpacity(0.2),
+          selectedColor: priorityColor.withValues(alpha: 0.2),
           checkmarkColor: priorityColor,
           labelStyle: TextStyle(
             color: isSelected ? priorityColor : Colors.grey.shade700,

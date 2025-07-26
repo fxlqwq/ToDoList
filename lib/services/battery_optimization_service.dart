@@ -31,6 +31,7 @@ class BatteryOptimizationService {
       }
 
       // 显示说明对话框
+      if (!context.mounted) return false;
       final bool? userConfirmed = await _showBatteryOptimizationDialog(context);
       if (userConfirmed != true) {
         return false;
@@ -60,7 +61,7 @@ class BatteryOptimizationService {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(

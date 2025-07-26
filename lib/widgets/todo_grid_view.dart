@@ -46,8 +46,8 @@ class TodoGridView extends StatelessWidget {
                   GestureDetector(
                     onTap: onMainTaskToggle,
                     child: Container(
-                      width: isSmallScreen ? 14 : 16,
-                      height: isSmallScreen ? 14 : 16,
+                      width: isSmallScreen ? 18 : 22, // 增大主任务复选框
+                      height: isSmallScreen ? 18 : 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
@@ -63,7 +63,7 @@ class TodoGridView extends StatelessWidget {
                       child: todo.isCompleted
                           ? Icon(
                               Icons.check,
-                              size: isSmallScreen ? 8 : 10,
+                              size: isSmallScreen ? 12 : 14, // 增大主任务check图标
                               color: Colors.white,
                             )
                           : null,
@@ -88,7 +88,7 @@ class TodoGridView extends StatelessWidget {
               Text(
                 todo.title,
                 style: TextStyle(
-                  fontSize: isSmallScreen ? 12 : 13,
+                  fontSize: isSmallScreen ? 14 : 16, // 从12:13增加到14:16
                   fontWeight: FontWeight.w600,
                   decoration:
                       todo.isCompleted ? TextDecoration.lineThrough : null,
@@ -104,7 +104,7 @@ class TodoGridView extends StatelessWidget {
                 Text(
                   todo.description,
                   style: TextStyle(
-                    fontSize: isSmallScreen ? 9 : 10,
+                    fontSize: isSmallScreen ? 11 : 12, // 从9:10增加到11:12
                     color: Colors.grey.shade600,
                   ),
                   maxLines: 1,
@@ -126,7 +126,7 @@ class TodoGridView extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(isSmallScreen ? 2 : 3),
                     decoration: BoxDecoration(
-                      color: _getCategoryColor().withOpacity(0.1),
+                      color: _getCategoryColor().withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Icon(
@@ -215,7 +215,7 @@ class TodoGridView extends StatelessWidget {
             Text(
               '$completedSubtasks/$totalSubtasks',
               style: TextStyle(
-                fontSize: isSmallScreen ? 7 : 8,
+                fontSize: isSmallScreen ? 9 : 10, // 从7:8增加到9:10
                 fontWeight: FontWeight.bold,
                 color: progress == 1.0 ? Colors.green : Colors.orange,
               ),
@@ -229,7 +229,7 @@ class TodoGridView extends StatelessWidget {
           // 增大子任务显示的最大高度，以适应更大的字体和更多子任务
           ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: isSmallScreen ? 100 : 120, // 大幅增加高度限制以显示更多子任务
+              maxHeight: isSmallScreen ? 100 : 120, // 进一步增加高度限制
             ),
             child: SingleChildScrollView(
               // 如果子任务太多，允许滚动
@@ -240,15 +240,20 @@ class TodoGridView extends StatelessWidget {
                   return GestureDetector(
                     onTap: () => onSubtaskToggle?.call(index),
                     child: Container(
-                      margin: EdgeInsets.only(bottom: isSmallScreen ? 1.5 : 2),
+                      margin: EdgeInsets.only(bottom: isSmallScreen ? 2 : 3),
                       padding: EdgeInsets.symmetric(
-                          vertical: isSmallScreen ? 3 : 4,
-                          horizontal: 2), // 增大点击区域
+                          vertical: isSmallScreen ? 6 : 8, // 大幅增大垂直点击区域
+                          horizontal: isSmallScreen ? 4 : 6), // 增大水平点击区域
+                      decoration: BoxDecoration(
+                        // 添加微妙的背景色提示点击区域
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                       child: Row(
                         children: [
                           Container(
-                            width: isSmallScreen ? 12 : 14, // 增大复选框
-                            height: isSmallScreen ? 12 : 14,
+                            width: isSmallScreen ? 18 : 21, // 进一步增大复选框
+                            height: isSmallScreen ? 18 : 21,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
@@ -264,24 +269,28 @@ class TodoGridView extends StatelessWidget {
                             child: subtask.isCompleted
                                 ? Icon(
                                     Icons.check,
-                                    size: isSmallScreen ? 10 : 12, // 增大对勾
+                                    size: isSmallScreen
+                                        ? 14
+                                        : 16, // 增加checkmark图标大小以匹配更大的复选框
                                     color: Colors.white,
                                   )
                                 : null,
                           ),
-                          SizedBox(width: isSmallScreen ? 3 : 4),
+                          SizedBox(width: isSmallScreen ? 4 : 6), // 增加间距
                           Expanded(
                             child: Text(
                               subtask.title,
                               style: TextStyle(
-                                fontSize: isSmallScreen ? 8 : 9,
+                                fontSize:
+                                    isSmallScreen ? 12 : 13, // 进一步增大字体从10:11到12:13
                                 color: subtask.isCompleted
                                     ? Colors.grey.shade500
                                     : Colors.grey.shade700,
                                 decoration: subtask.isCompleted
                                     ? TextDecoration.lineThrough
                                     : null,
-                                height: 1.3, // 稍微增加行高便于阅读
+                                height: 1.4, // 增加行高以匹配更大的字体
+                                fontWeight: FontWeight.w500, // 添加字体粗细
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -335,7 +344,7 @@ class TodoGridView extends StatelessWidget {
       case Category.personal:
         return FontAwesomeIcons.user;
       case Category.shopping:
-        return FontAwesomeIcons.shoppingCart;
+        return FontAwesomeIcons.cartShopping;
       case Category.health:
         return FontAwesomeIcons.heartPulse;
       case Category.education:
