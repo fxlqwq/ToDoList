@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/todo.dart';
 import '../models/project_group.dart';
+import '../models/subtask.dart';
+import '../services/database_service.dart';
 
 class ProjectStatisticsScreen extends StatelessWidget {
   final ProjectGroup projectGroup;

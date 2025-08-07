@@ -2,28 +2,28 @@
 
 ## 项目基本信息
 - **项目名称**: todo_list_app  
-- **统计时间**: 2025-08-07 14:19:36
+- **统计时间**: 2025-08-07 15:26:20
 - **统计范围**: lib/ 目录下的所有 .dart 文件
 
 ## 📊 总体统计
 
 | 指标 | 数量 |
 |------|------|
-| 📂 Dart文件总数 | 39 个 |
-| 📝 代码总行数 | 14578 行 |
-| 💻 有效代码行数 | 13057 行 |
-| 💬 注释行数 | 472 行 |
-| ⬜ 空行数 | 1051 行 |
-| 📊 总字符数 | 462279 字符 |
-| 💡 代码字符数 | 442385 字符 |
+| 📂 Dart文件总数 | 40 个 |
+| 📝 代码总行数 | 15753 行 |
+| 💻 有效代码行数 | 14179 行 |
+| 💬 注释行数 | 480 行 |
+| ⬜ 空行数 | 1096 行 |
+| 📊 总字符数 | 502224 字符 |
+| 💡 代码字符数 | 481638 字符 |
 
 ## 📈 代码质量指标
 
 | 指标 | 比例/平均值 |
 |------|------------|
-| 💡 代码密度 | 89.5% |
-| 📋 注释率 | 3.2% |
-| 📏 平均每行字符数 | 31.7 字符/行 |
+| 💡 代码密度 | 90.0% |
+| 📋 注释率 | 3.0% |
+| 📏 平均每行字符数 | 31.8 字符/行 |
 
 ## 📂 目录结构统计
 
@@ -33,8 +33,8 @@
 | 📁 widgets | 3804 行 | 117578 字符 | 13 个文件 |
 | 📁 models | 662 行 | 18584 字符 | 5 个文件 |
 | 📁 根目录 | 211 行 | 7510 字符 | 1 个文件 |
-| 📁 services | 3162 行 | 99653 字符 | 8 个文件 |
-| 📁 screens | 6467 行 | 210725 字符 | 11 个文件 |
+| 📁 services | 3219 行 | 102355 字符 | 8 个文件 |
+| 📁 screens | 7585 行 | 247968 字符 | 12 个文件 |
 
 ## 🏆 文件大小排行榜（前10名）
 
@@ -42,13 +42,13 @@
 |------|--------|------|------|
 | 1 | home_screen.dart | screens/home_screen.dart | 1621 行 |
 | 2 | add_edit_todo_screen.dart | screens/add_edit_todo_screen.dart | 1158 行 |
-| 3 | statistics_screen.dart | screens/statistics_screen.dart | 873 行 |
-| 4 | project_statistics_screen.dart | screens/project_statistics_screen.dart | 827 行 |
-| 5 | todo_card.dart | widgets/todo_card.dart | 775 行 |
-| 6 | database_service.dart | services/database_service.dart | 770 行 |
-| 7 | todo_provider.dart | services/todo_provider.dart | 628 行 |
-| 8 | data_export_service.dart | services/data_export_service.dart | 590 行 |
-| 9 | subtask_widget.dart | widgets/subtask_widget.dart | 510 行 |
+| 3 | project_statistics_with_subtasks_screen.dart | screens/project_statistics_with_subtasks_screen.dart | 1103 行 |
+| 4 | statistics_screen.dart | screens/statistics_screen.dart | 873 行 |
+| 5 | project_statistics_screen.dart | screens/project_statistics_screen.dart | 829 行 |
+| 6 | database_service.dart | services/database_service.dart | 789 行 |
+| 7 | todo_card.dart | widgets/todo_card.dart | 775 行 |
+| 8 | todo_provider.dart | services/todo_provider.dart | 628 行 |
+| 9 | data_export_service.dart | services/data_export_service.dart | 628 行 |
 
 ## 📋 详细文件列表
 
@@ -61,20 +61,21 @@
 | todo.dart | models/todo.dart | 344 行 | 10383 字符 |
 | view_mode.dart | models/view_mode.dart | 6 行 | 133 字符 |
 | add_edit_todo_screen.dart | screens/add_edit_todo_screen.dart | 1158 行 | 34983 字符 |
-| data_backup_screen.dart | screens/data_backup_screen.dart | 507 行 | 16590 字符 |
+| data_backup_screen.dart | screens/data_backup_screen.dart | 520 行 | 17167 字符 |
 | data_migration_screen.dart | screens/data_migration_screen.dart | 0 行 | 0 字符 |
 | home_screen.dart | screens/home_screen.dart | 1621 行 | 54983 字符 |
 | notification_settings_screen.dart | screens/notification_settings_screen.dart | 491 行 | 15643 字符 |
 | notification_test_screen.dart | screens/notification_test_screen.dart | 180 行 | 5241 字符 |
 | preferences_test_screen.dart | screens/preferences_test_screen.dart | 114 行 | 3535 字符 |
 | project_group_manager_screen.dart | screens/project_group_manager_screen.dart | 470 行 | 17044 字符 |
-| project_statistics_screen.dart | screens/project_statistics_screen.dart | 827 行 | 26773 字符 |
+| project_statistics_screen.dart | screens/project_statistics_screen.dart | 829 行 | 26850 字符 |
+| project_statistics_with_subtasks_screen.dart | screens/project_statistics_with_subtasks_screen.dart | 1103 行 | 36563 字符 |
 | splash_screen.dart | screens/splash_screen.dart | 226 行 | 6637 字符 |
-| statistics_screen.dart | screens/statistics_screen.dart | 873 行 | 29296 字符 |
+| statistics_screen.dart | screens/statistics_screen.dart | 873 行 | 29322 字符 |
 | attachment_service.dart | services/attachment_service.dart | 307 行 | 8210 字符 |
 | battery_optimization_service.dart | services/battery_optimization_service.dart | 182 行 | 5696 字符 |
-| data_export_service.dart | services/data_export_service.dart | 590 行 | 21277 字符 |
-| database_service.dart | services/database_service.dart | 770 行 | 22163 字符 |
+| data_export_service.dart | services/data_export_service.dart | 628 行 | 23363 字符 |
+| database_service.dart | services/database_service.dart | 789 行 | 22779 字符 |
 | notification_helper.dart | services/notification_helper.dart | 113 行 | 3203 字符 |
 | notification_service.dart | services/notification_service.dart | 433 行 | 14969 字符 |
 | preferences_service.dart | services/preferences_service.dart | 139 行 | 4086 字符 |
@@ -97,5 +98,5 @@
 ---
 
 **报告生成工具**: count_lib_lines.sh  
-**生成时间**: 2025-08-07 14:19:36  
+**生成时间**: 2025-08-07 15:26:20  
 **项目版本**: Flutter项目代码统计工具 v2.0

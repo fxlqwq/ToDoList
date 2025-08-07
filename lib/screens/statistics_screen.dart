@@ -4,7 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/todo_provider.dart';
 import '../models/todo.dart';
 import '../utils/app_theme.dart';
-import 'project_statistics_screen.dart';
+import 'project_statistics_with_subtasks_screen.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
@@ -159,7 +159,7 @@ class StatisticsScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProjectStatisticsScreen(
+                        builder: (context) => ProjectStatisticsWithSubtasksScreen(
                           projectGroup: group,
                           todos: groupTodos,
                         ),

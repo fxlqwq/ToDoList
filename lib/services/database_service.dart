@@ -480,6 +480,25 @@ class DatabaseService {
     );
   }
 
+  // Get all subtasks for a project group
+  Future<List<Subtask>> getSubtasksForProjectGroup(int projectGroupId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+      SELECT s.*, s.order_index as order_index
+      FROM subtasks s
+      INNER JOIN todos t ON s.todoId = t.id
+      WHERE t.projectGroupId = ?
+      ORDER BY s.order_index ASC
+    ''', [projectGroupId]);
+
+    return List.generate(maps.length, (i) {
+      return Subtask.fromMap({
+        ...maps[i],
+        'order': maps[i]['order_index'], // 映射回模型的字段名
+      });
+    });
+  }
+
   // ============= ATTACHMENT METHODS =============
 
   // Insert a new attachment
