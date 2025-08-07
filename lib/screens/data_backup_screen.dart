@@ -452,6 +452,17 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
         final size = fileInfo['size'] as int;
         final modified = fileInfo['modified'] as DateTime;
         final isProjectSpecific = fileInfo['isProjectSpecific'] as bool;
+        final projectGroupNames = fileInfo['projectGroupNames'] as String?;
+        final todosCount = fileInfo['todosCount'] as int?;
+
+        // 构建副标题信息
+        String subtitle = '${_formatFileSize(size)} • ${DateFormat('yyyy-MM-dd HH:mm').format(modified)}';
+        if (projectGroupNames != null && projectGroupNames.isNotEmpty) {
+          subtitle += '\n项目组: $projectGroupNames';
+        }
+        if (todosCount != null) {
+          subtitle += ' • $todosCount 个任务';
+        }
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8.0),
@@ -467,8 +478,10 @@ class _DataBackupScreenState extends State<DataBackupScreen> {
               style: const TextStyle(fontWeight: FontWeight.w500),
             ),
             subtitle: Text(
-              '${_formatFileSize(size)} • ${DateFormat('yyyy-MM-dd HH:mm').format(modified)}',
+              subtitle,
+              style: const TextStyle(fontSize: 12),
             ),
+            isThreeLine: projectGroupNames != null && projectGroupNames.isNotEmpty,
             trailing: PopupMenuButton<String>(
               onSelected: (action) {
                 switch (action) {

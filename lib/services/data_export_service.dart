@@ -355,16 +355,25 @@ class DataExportService {
         print('🔥 DataExportService: JSON import returned data keys: ${data.keys.toList()}');
       }
 
-      // Validate data structure
-      if (data['version'] == null || data['projectGroups'] == null || data['todos'] == null) {
+      // Validate data structure - support both full and project-specific backups
+      if (data['version'] == null || data['todos'] == null) {
         print('🔥 DataExportService: Invalid backup file format. Keys: ${data.keys.toList()}');
         throw Exception('Invalid backup file format');
       }
 
-      print('🔥 DataExportService: Data validation passed. Project groups: ${(data['projectGroups'] as List).length}, Todos: ${(data['todos'] as List).length}');
+      // Check if it's a full backup (has projectGroups) or project-specific backup (has projectGroup)
+      final isFullBackup = data['projectGroups'] != null;
+      final isProjectBackup = data['projectGroup'] != null;
+      
+      if (!isFullBackup && !isProjectBackup) {
+        print('🔥 DataExportService: Neither projectGroups nor projectGroup found. Keys: ${data.keys.toList()}');
+        throw Exception('Invalid backup file format - no project data found');
+      }
 
-      // Import project groups
-      if (data['projectGroups'] != null) {
+      if (isFullBackup) {
+        print('🔥 DataExportService: Full backup detected. Project groups: ${(data['projectGroups'] as List).length}, Todos: ${(data['todos'] as List).length}');
+        
+        // Import project groups for full backup
         final projectGroups = data['projectGroups'] as List;
         print('🔥 DataExportService: Starting to import ${projectGroups.length} project groups');
         for (var groupData in projectGroups) {
@@ -375,6 +384,17 @@ class DataExportService {
           } catch (e) {
             print('🔥 DataExportService: Error importing project group: $e');
           }
+        }
+      } else {
+        print('🔥 DataExportService: Project-specific backup detected. Project: ${data['projectGroup']['name']}, Todos: ${(data['todos'] as List).length}');
+        
+        // Import single project group for project-specific backup
+        try {
+          final group = ProjectGroup.fromJson(data['projectGroup']);
+          await _databaseService.insertProjectGroup(group);
+          print('🔥 DataExportService: Imported project group: ${group.name}');
+        } catch (e) {
+          print('🔥 DataExportService: Error importing project group: $e');
         }
       }
 
@@ -536,12 +556,18 @@ class DataExportService {
           info['version'] = data['version'] ?? 'Unknown';
           info['exportDate'] = data['exportDate'] ?? 'Unknown';
           
+          // Handle both full backup (projectGroups) and project-specific backup (projectGroup)
           if (data['projectGroups'] != null) {
             final projectGroups = data['projectGroups'] as List;
             info['projectGroupsCount'] = projectGroups.length;
-            // 如果只有一个项目组，可能是项目特定备份
-            info['isProjectSpecific'] = projectGroups.length == 1;
+            info['isProjectSpecific'] = false;
+            info['projectGroupNames'] = projectGroups.map((pg) => pg['name'] ?? 'Unknown').join(', ');
+          } else if (data['projectGroup'] != null) {
+            info['projectGroupsCount'] = 1;
+            info['isProjectSpecific'] = true;
+            info['projectGroupNames'] = data['projectGroup']['name'] ?? 'Unknown';
           }
+          
           if (data['todos'] != null) {
             info['todosCount'] = (data['todos'] as List).length;
           }
@@ -559,20 +585,32 @@ class DataExportService {
           // Try to read data.json from archive
           for (final archiveFile in archive) {
             if (archiveFile.name == 'data.json') {
-              final content = String.fromCharCodes(archiveFile.content as List<int>);
-              final data = jsonDecode(content);
-              
-              info['version'] = data['version'] ?? 'Unknown';
-              info['exportDate'] = data['exportDate'] ?? 'Unknown';
-              
-              if (data['projectGroups'] != null) {
-                final projectGroups = data['projectGroups'] as List;
-                info['projectGroupsCount'] = projectGroups.length;
-                // 如果只有一个项目组，可能是项目特定备份
-                info['isProjectSpecific'] = projectGroups.length == 1;
-              }
-              if (data['todos'] != null) {
-                info['todosCount'] = (data['todos'] as List).length;
+              try {
+                // Use UTF-8 decoding for consistency
+                final contentBytes = archiveFile.content as List<int>;
+                final content = utf8.decode(contentBytes, allowMalformed: true);
+                final data = jsonDecode(content);
+                
+                info['version'] = data['version'] ?? 'Unknown';
+                info['exportDate'] = data['exportDate'] ?? 'Unknown';
+                
+                // Handle both full backup (projectGroups) and project-specific backup (projectGroup)
+                if (data['projectGroups'] != null) {
+                  final projectGroups = data['projectGroups'] as List;
+                  info['projectGroupsCount'] = projectGroups.length;
+                  info['isProjectSpecific'] = false;
+                  info['projectGroupNames'] = projectGroups.map((pg) => pg['name'] ?? 'Unknown').join(', ');
+                } else if (data['projectGroup'] != null) {
+                  info['projectGroupsCount'] = 1;
+                  info['isProjectSpecific'] = true;
+                  info['projectGroupNames'] = data['projectGroup']['name'] ?? 'Unknown';
+                }
+                
+                if (data['todos'] != null) {
+                  info['todosCount'] = (data['todos'] as List).length;
+                }
+              } catch (e) {
+                debugPrint('Error parsing ZIP data.json: $e');
               }
               break;
             }
