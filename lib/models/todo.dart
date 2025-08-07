@@ -22,6 +22,7 @@ class Todo {
   bool useMarkdown; // 是否使用Markdown格式
   List<Subtask> subtasks; // 子任务列表
   List<Attachment> attachments; // 附件列表
+  int? projectGroupId; // 项目组ID
 
   Todo({
     this.id,
@@ -39,6 +40,7 @@ class Todo {
     this.useMarkdown = false,
     List<Subtask>? subtasks,
     List<Attachment>? attachments,
+    this.projectGroupId,
   })  : createdAt = createdAt ?? DateTime.now(),
         tags = tags ?? [],
         subtasks = subtasks ?? [],
@@ -60,6 +62,7 @@ class Todo {
       'hasReminder': hasReminder ? 1 : 0,
       'reminderDate': reminderDate?.millisecondsSinceEpoch,
       'useMarkdown': useMarkdown ? 1 : 0,
+      'projectGroupId': projectGroupId,
     };
   }
 
@@ -94,6 +97,7 @@ class Todo {
             ? DateTime.fromMillisecondsSinceEpoch(map['reminderDate'])
             : null,
         useMarkdown: map['useMarkdown'] == 1,
+        projectGroupId: map['projectGroupId'],
         // 子任务和附件将通过单独的查询获取
       );
     } catch (e) {
@@ -125,6 +129,7 @@ class Todo {
     bool? useMarkdown,
     List<Subtask>? subtasks,
     List<Attachment>? attachments,
+    int? projectGroupId,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -142,6 +147,7 @@ class Todo {
       useMarkdown: useMarkdown ?? this.useMarkdown,
       subtasks: subtasks ?? this.subtasks,
       attachments: attachments ?? this.attachments,
+      projectGroupId: projectGroupId ?? this.projectGroupId,
     );
   }
 
@@ -274,6 +280,62 @@ class Todo {
 
   List<Attachment> get textAttachments =>
       attachments.where((a) => a.type == AttachmentType.text).toList();
+
+  // Convert to JSON for export
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'isCompleted': isCompleted,
+      'createdAt': createdAt.toIso8601String(),
+      'dueDate': dueDate?.toIso8601String(),
+      'priority': priority.index,
+      'category': category.index,
+      'colorCode': colorCode,
+      'tags': tags,
+      'hasReminder': hasReminder,
+      'reminderDate': reminderDate?.toIso8601String(),
+      'useMarkdown': useMarkdown,
+      'projectGroupId': projectGroupId,
+      'subtasks': subtasks.map((s) => s.toJson()).toList(),
+      'attachments': attachments.map((a) => a.toJson()).toList(),
+    };
+  }
+
+  // Create from JSON for import
+  factory Todo.fromJson(Map<String, dynamic> json) {
+    return Todo(
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      isCompleted: json['isCompleted'] ?? false,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      dueDate: json['dueDate'] != null
+          ? DateTime.parse(json['dueDate'])
+          : null,
+      priority: json['priority'] != null && json['priority'] < Priority.values.length
+          ? Priority.values[json['priority']]
+          : Priority.medium,
+      category: json['category'] != null && json['category'] < Category.values.length
+          ? Category.values[json['category']]
+          : Category.personal,
+      colorCode: json['colorCode'],
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
+      hasReminder: json['hasReminder'] ?? false,
+      reminderDate: json['reminderDate'] != null
+          ? DateTime.parse(json['reminderDate'])
+          : null,
+      useMarkdown: json['useMarkdown'] ?? false,
+      projectGroupId: json['projectGroupId'],
+      subtasks: json['subtasks'] != null
+          ? (json['subtasks'] as List).map((s) => Subtask.fromJson(s)).toList()
+          : [],
+      attachments: json['attachments'] != null
+          ? (json['attachments'] as List).map((a) => Attachment.fromJson(a)).toList()
+          : [],
+    );
+  }
 
   @override
   String toString() {

@@ -61,4 +61,27 @@ class Subtask {
   String toString() {
     return 'Subtask{id: $id, todoId: $todoId, title: $title, isCompleted: $isCompleted}';
   }
+
+  // Convert to JSON for export
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'isCompleted': isCompleted,
+      'createdAt': createdAt.toIso8601String(),
+      'order': order,
+    };
+  }
+
+  // Create from JSON for import
+  factory Subtask.fromJson(Map<String, dynamic> json) {
+    return Subtask(
+      todoId: 0, // Will be set when importing
+      title: json['title'] ?? '',
+      isCompleted: json['isCompleted'] ?? false,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      order: json['order'] ?? 0,
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../services/todo_provider.dart';
 import '../models/todo.dart';
 import '../utils/app_theme.dart';
+import 'project_statistics_screen.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
@@ -27,6 +28,26 @@ class StatisticsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 总体统计标题
+                Row(
+                  children: [
+                    Icon(
+                      FontAwesomeIcons.chartPie,
+                      color: AppTheme.primaryColor,
+                      size: isSmallScreen ? 20 : 24,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '总体统计',
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 18 : 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: isSmallScreen ? 12 : 16),
                 _buildOverviewCards(todoProvider, isSmallScreen),
                 SizedBox(height: isSmallScreen ? 16 : 24),
                 _buildCompletionChart(todoProvider, isSmallScreen),
@@ -36,11 +57,210 @@ class StatisticsScreen extends StatelessWidget {
                 _buildPriorityStats(todoProvider, isSmallScreen),
                 SizedBox(height: isSmallScreen ? 16 : 24),
                 _buildTimeStats(todoProvider, isSmallScreen),
+                SizedBox(height: isSmallScreen ? 24 : 32),
+                
+                // 项目组统计选择器
+                _buildProjectGroupSelector(context, todoProvider, isSmallScreen),
               ],
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildProjectGroupSelector(BuildContext context, TodoProvider todoProvider, bool isSmallScreen) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              FontAwesomeIcons.folderOpen,
+              color: AppTheme.secondaryColor,
+              size: isSmallScreen ? 20 : 24,
+            ),
+            SizedBox(width: 8),
+            Text(
+              '项目组统计',
+              style: TextStyle(
+                fontSize: isSmallScreen ? 18 : 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.secondaryColor,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: isSmallScreen ? 12 : 16),
+        Text(
+          '选择一个项目组查看详细统计数据',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+        SizedBox(height: 12),
+        if (todoProvider.projectGroups.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    FontAwesomeIcons.folderPlus,
+                    color: Colors.grey[400],
+                    size: 32,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '暂无项目组',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '请先创建项目组来查看分组统计',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...todoProvider.projectGroups.map((group) {
+            final groupTodos = todoProvider.allTodos
+                .where((todo) => todo.projectGroupId == group.id)
+                .toList();
+            final completedCount = groupTodos.where((todo) => todo.isCompleted).length;
+            final totalCount = groupTodos.length;
+            final completionRate = totalCount > 0 ? (completedCount / totalCount) : 0.0;
+
+            return Container(
+              margin: EdgeInsets.only(bottom: isSmallScreen ? 8 : 12),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProjectStatisticsScreen(
+                          projectGroup: group,
+                          todos: groupTodos,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                    child: Row(
+                      children: [
+                        // 项目组颜色标识
+                        Container(
+                          width: isSmallScreen ? 32 : 36,
+                          height: isSmallScreen ? 32 : 36,
+                          decoration: BoxDecoration(
+                            color: Color(group.colorCode),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            FontAwesomeIcons.folderOpen,
+                            color: Colors.white,
+                            size: isSmallScreen ? 14 : 16,
+                          ),
+                        ),
+                        SizedBox(width: isSmallScreen ? 12 : 16),
+                        
+                        // 项目组信息
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      group.name,
+                                      style: TextStyle(
+                                        fontSize: isSmallScreen ? 16 : 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '$completedCount/$totalCount',
+                                    style: TextStyle(
+                                      fontSize: isSmallScreen ? 14 : 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.primaryColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (group.description.isNotEmpty) ...[
+                                SizedBox(height: 4),
+                                Text(
+                                  group.description,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                              SizedBox(height: 8),
+                              
+                              // 进度条
+                              LinearProgressIndicator(
+                                value: completionRate,
+                                backgroundColor: Colors.grey[300],
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(group.colorCode),
+                                ),
+                                minHeight: isSmallScreen ? 4 : 6,
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                '完成率: ${(completionRate * 100).toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        // 箭头图标
+                        Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey[400],
+                          size: isSmallScreen ? 20 : 24,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+      ],
     );
   }
 

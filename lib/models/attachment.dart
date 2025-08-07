@@ -97,4 +97,33 @@ class Attachment {
   String toString() {
     return 'Attachment{id: $id, todoId: $todoId, fileName: $fileName, type: $typeText}';
   }
+
+  // Convert to JSON for export
+  Map<String, dynamic> toJson() {
+    return {
+      'fileName': fileName,
+      'filePath': filePath,
+      'type': type.index,
+      'createdAt': createdAt.toIso8601String(),
+      'fileSize': fileSize,
+      'textContent': textContent,
+    };
+  }
+
+  // Create from JSON for import
+  factory Attachment.fromJson(Map<String, dynamic> json) {
+    return Attachment(
+      todoId: 0, // Will be set when importing
+      fileName: json['fileName'] ?? '',
+      filePath: json['filePath'] ?? '',
+      type: json['type'] != null && json['type'] < AttachmentType.values.length
+          ? AttachmentType.values[json['type']]
+          : AttachmentType.text,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      fileSize: json['fileSize'],
+      textContent: json['textContent'],
+    );
+  }
 }

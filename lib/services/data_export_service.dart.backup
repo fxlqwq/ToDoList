@@ -1,0 +1,479 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:archive/archive.dart';
+import 'package:path/path.dart' as path;
+import '../models/todo.dart' as todo_models;
+import '../models/project_group.dart';
+import 'database_service.dart';
+
+class DataExportService {
+  static final DataExportService _instance = DataExportService._internal();
+  factory DataExportService() => _instance;
+  DataExportService._internal();
+
+  final DatabaseService _databaseService = DatabaseService();
+
+  // Get Downloads/ToDoList directory
+  Future<Directory> _getExportDirectory() async {
+    Directory? downloadsDir;
+    
+    if (Platform.isAndroid) {
+      // Try to get external storage directory
+      try {
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          // Navigate to Downloads directory
+          downloadsDir = Directory('/storage/emulated/0/Download/ToDoList');
+        }
+      } catch (e) {
+        debugPrint('Error accessing external storage: $e');
+      }
+    }
+    
+    // Fallback to app documents directory
+    downloadsDir ??= Directory('${(await getApplicationDocumentsDirectory()).path}/ToDoList');
+    
+    if (!await downloadsDir.exists()) {
+      await downloadsDir.create(recursive: true);
+    }
+    
+    return downloadsDir;
+  }
+
+  // Request necessary permissions
+  Future<bool> _requestPermissions() async {
+    if (Platform.isAndroid) {
+      final storagePermission = await Permission.manageExternalStorage.request();
+      if (storagePermission.isDenied) {
+        final storagePermissionLegacy = await Permission.storage.request();
+        return storagePermissionLegacy.isGranted;
+      }
+      return storagePermission.isGranted;
+    }
+    return true; // iOS doesn't need explicit permission for app sandbox
+  }
+
+  // Export all data as ZIP with attachments
+  Future<String> exportAllData() async {
+    try {
+      if (!await _requestPermissions()) {
+        throw Exception('Storage permission denied');
+      }
+
+      final directory = await _getExportDirectory();
+      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final zipFileName = 'todolist_backup_$timestamp.zip';
+      final zipFile = File('${directory.path}/$zipFileName');
+
+      // Get all data
+      final projectGroups = await _databaseService.getAllProjectGroups();
+      final allTodos = await _databaseService.getAllTodosWithDetails();
+
+      // Create archive
+      final archive = Archive();
+
+      // Add main data file
+      final exportData = {
+        'version': '1.0',
+        'exportDate': DateTime.now().toIso8601String(),
+        'projectGroups': projectGroups.map((g) => g.toJson()).toList(),
+        'todos': await _processeTodosForExport(allTodos),
+      };
+
+      final dataJson = jsonEncode(exportData);
+      final dataFile = ArchiveFile('data.json', dataJson.length, dataJson.codeUnits);
+      archive.addFile(dataFile);
+
+      // Add attachments
+      final attachmentsDir = await _getAttachmentsDirectory();
+      if (await attachmentsDir.exists()) {
+        await _addAttachmentsToArchive(archive, attachmentsDir, allTodos);
+      }
+
+      // Write ZIP file
+      final zipData = ZipEncoder().encode(archive);
+      if (zipData != null) {
+        await zipFile.writeAsBytes(zipData);
+      }
+
+      return zipFile.path;
+    } catch (e) {
+      debugPrint('Error exporting all data: $e');
+      rethrow;
+    }
+  }
+
+  // Process todos for export, updating attachment paths
+  Future<List<Map<String, dynamic>>> _processeTodosForExport(List<todo_models.Todo> todos) async {
+    final processedTodos = <Map<String, dynamic>>[];
+    
+    for (final todo in todos) {
+      final todoJson = todo.toJson();
+      
+      // Update attachment file paths to relative paths
+      if (todoJson['attachments'] != null) {
+        final List<dynamic> attachments = todoJson['attachments'];
+        for (int i = 0; i < attachments.length; i++) {
+          if (attachments[i]['filePath'] != null) {
+            final originalPath = attachments[i]['filePath'] as String;
+            final fileName = path.basename(originalPath);
+            attachments[i]['filePath'] = 'attachments/$fileName';
+            attachments[i]['originalPath'] = originalPath; // Keep original for reference
+          }
+        }
+      }
+      
+      processedTodos.add(todoJson);
+    }
+    
+    return processedTodos;
+  }
+
+  // Get attachments directory
+  Future<Directory> _getAttachmentsDirectory() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    return Directory('${appDir.path}/attachments');
+  }
+
+  // Add attachments to archive
+  Future<void> _addAttachmentsToArchive(Archive archive, Directory attachmentsDir, List<todo_models.Todo> todos) async {
+    final Set<String> attachmentPaths = {};
+    
+    // Collect all attachment file paths
+    for (final todo in todos) {
+      for (final attachment in todo.attachments) {
+        if (attachment.filePath.isNotEmpty) {
+          attachmentPaths.add(attachment.filePath);
+        }
+      }
+    }
+    
+    // Add each attachment file to archive
+    for (final filePath in attachmentPaths) {
+      final file = File(filePath);
+      if (await file.exists()) {
+        try {
+          final bytes = await file.readAsBytes();
+          final fileName = path.basename(filePath);
+          final archiveFile = ArchiveFile('attachments/$fileName', bytes.length, bytes);
+          archive.addFile(archiveFile);
+        } catch (e) {
+          debugPrint('Error adding attachment $filePath to archive: $e');
+        }
+      }
+    }
+  }
+
+  // Export specific project group data as ZIP
+  Future<String> exportProjectGroupData(int projectGroupId) async {
+    try {
+      if (!await _requestPermissions()) {
+        throw Exception('Storage permission denied');
+      }
+
+      final directory = await _getExportDirectory();
+      final projectGroup = await _databaseService.getProjectGroup(projectGroupId);
+      final todos = await _databaseService.getTodosByProjectGroup(projectGroupId);
+      
+      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      final zipFileName = 'todolist_${projectGroup?.name ?? 'unknown'}_$timestamp.zip';
+      final zipFile = File('${directory.path}/$zipFileName');
+
+      // Create archive
+      final archive = Archive();
+
+      // Add main data file
+      final exportData = {
+        'version': '1.0',
+        'exportDate': DateTime.now().toIso8601String(),
+        'projectGroup': projectGroup?.toJson(),
+        'todos': await _processeTodosForExport(todos),
+      };
+
+      final dataJson = jsonEncode(exportData);
+      final dataFile = ArchiveFile('data.json', dataJson.length, dataJson.codeUnits);
+      archive.addFile(dataFile);
+
+      // Add attachments for this project group
+      final attachmentsDir = await _getAttachmentsDirectory();
+      if (await attachmentsDir.exists()) {
+        await _addAttachmentsToArchive(archive, attachmentsDir, todos);
+      }
+
+      // Write ZIP file
+      final zipData = ZipEncoder().encode(archive);
+      if (zipData != null) {
+        await zipFile.writeAsBytes(zipData);
+      }
+
+      return zipFile.path;
+    } catch (e) {
+      debugPrint('Error exporting project group data: $e');
+      rethrow;
+    }
+  }
+
+  // Import all data from ZIP or JSON file
+  Future<bool> importAllData(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('File does not exist');
+      }
+
+      Map<String, dynamic> data;
+      
+      // Check if it's a ZIP file
+      if (filePath.toLowerCase().endsWith('.zip')) {
+        data = await _importFromZip(file);
+      } else {
+        // Legacy JSON import
+        final content = await file.readAsString();
+        data = jsonDecode(content);
+      }
+
+      // Validate data structure
+      if (data['version'] == null || data['projectGroups'] == null || data['todos'] == null) {
+        throw Exception('Invalid backup file format');
+      }
+
+      // Import project groups
+      if (data['projectGroups'] != null) {
+        for (var groupData in data['projectGroups']) {
+          try {
+            final group = ProjectGroup.fromJson(groupData);
+            await _databaseService.insertProjectGroup(group);
+          } catch (e) {
+            debugPrint('Error importing project group: $e');
+          }
+        }
+      }
+
+      // Import todos
+      if (data['todos'] != null) {
+        await _importTodosWithAttachments(data['todos']);
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Error importing data: $e');
+      return false;
+    }
+  }
+
+  // Import from ZIP file
+  Future<Map<String, dynamic>> _importFromZip(File zipFile) async {
+    final bytes = await zipFile.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+    
+    Map<String, dynamic>? data;
+    final attachmentsToRestore = <String, List<int>>{};
+    
+    // Extract files from archive
+    for (final file in archive) {
+      if (file.name == 'data.json') {
+        // Extract main data
+        final content = String.fromCharCodes(file.content as List<int>);
+        data = jsonDecode(content);
+      } else if (file.name.startsWith('attachments/')) {
+        // Store attachment for later restoration
+        attachmentsToRestore[file.name] = file.content as List<int>;
+      }
+    }
+    
+    if (data == null) {
+      throw Exception('No data.json found in backup file');
+    }
+    
+    // Restore attachments
+    await _restoreAttachments(attachmentsToRestore);
+    
+    return data;
+  }
+
+  // Restore attachments from ZIP
+  Future<void> _restoreAttachments(Map<String, List<int>> attachments) async {
+    final attachmentsDir = await _getAttachmentsDirectory();
+    if (!await attachmentsDir.exists()) {
+      await attachmentsDir.create(recursive: true);
+    }
+    
+    for (final entry in attachments.entries) {
+      try {
+        final fileName = path.basename(entry.key);
+        final file = File('${attachmentsDir.path}/$fileName');
+        await file.writeAsBytes(entry.value);
+      } catch (e) {
+        debugPrint('Error restoring attachment ${entry.key}: $e');
+      }
+    }
+  }
+
+  // Import todos with attachment path correction
+  Future<void> _importTodosWithAttachments(List<dynamic> todosData) async {
+    final attachmentsDir = await _getAttachmentsDirectory();
+    
+    for (var todoData in todosData) {
+      try {
+        // Update attachment paths to current device paths
+        if (todoData['attachments'] != null) {
+          final List<dynamic> attachments = todoData['attachments'];
+          for (int i = 0; i < attachments.length; i++) {
+            if (attachments[i]['filePath'] != null) {
+              final relativePath = attachments[i]['filePath'] as String;
+              if (relativePath.startsWith('attachments/')) {
+                final fileName = path.basename(relativePath);
+                attachments[i]['filePath'] = '${attachmentsDir.path}/$fileName';
+              }
+            }
+          }
+        }
+        
+        final todo = todo_models.Todo.fromJson(todoData);
+        final todoId = await _databaseService.insertTodo(todo);
+        
+        // Import subtasks
+        for (var subtask in todo.subtasks) {
+          final newSubtask = subtask.copyWith(todoId: todoId);
+          await _databaseService.insertSubtask(newSubtask);
+        }
+        
+        // Import attachments
+        for (var attachment in todo.attachments) {
+          final newAttachment = attachment.copyWith(todoId: todoId);
+          await _databaseService.insertAttachment(newAttachment);
+        }
+      } catch (e) {
+        debugPrint('Error importing todo: $e');
+      }
+    }
+  }
+        }
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Error importing all data: $e');
+      rethrow;
+    }
+  }
+
+  // Import project group data
+  Future<bool> importProjectGroupData(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('File does not exist');
+      }
+
+      final content = await file.readAsString();
+      final data = jsonDecode(content);
+
+      // Validate data structure
+      if (data['version'] == null || data['todos'] == null) {
+        throw Exception('Invalid backup file format');
+      }
+
+      int? projectGroupId;
+
+      // Import project group if exists
+      if (data['projectGroup'] != null) {
+        try {
+          final group = ProjectGroup.fromJson(data['projectGroup']);
+          projectGroupId = await _databaseService.insertProjectGroup(group);
+        } catch (e) {
+          debugPrint('Error importing project group: $e');
+          // Use default group if project group import fails
+          final defaultGroup = await _databaseService.getDefaultProjectGroup();
+          projectGroupId = defaultGroup?.id;
+        }
+      }
+
+      // Import todos
+      if (data['todos'] != null) {
+        for (var todoData in data['todos']) {
+          try {
+            final todo = todo_models.Todo.fromJson(todoData);
+            // Set the project group ID
+            final updatedTodo = todo.copyWith(projectGroupId: projectGroupId);
+            final todoId = await _databaseService.insertTodo(updatedTodo);
+            
+            // Import subtasks
+            for (var subtask in todo.subtasks) {
+              final newSubtask = subtask.copyWith(todoId: todoId);
+              await _databaseService.insertSubtask(newSubtask);
+            }
+            
+            // Import attachments
+            for (var attachment in todo.attachments) {
+              final newAttachment = attachment.copyWith(todoId: todoId);
+              await _databaseService.insertAttachment(newAttachment);
+            }
+          } catch (e) {
+            debugPrint('Error importing todo: $e');
+          }
+        }
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Error importing project group data: $e');
+      rethrow;
+    }
+  }
+
+  // Get list of available backup files
+  Future<List<File>> getBackupFiles() async {
+    try {
+      final directory = await _getExportDirectory();
+      if (!await directory.exists()) {
+        return [];
+      }
+
+      final files = directory.listSync()
+          .where((entity) => entity is File && entity.path.endsWith('.json'))
+          .cast<File>()
+          .toList();
+
+      // Sort by modification date (newest first)
+      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      
+      return files;
+    } catch (e) {
+      debugPrint('Error getting backup files: $e');
+      return [];
+    }
+  }
+
+  // Get backup file info
+  Map<String, dynamic> getBackupFileInfo(File file) {
+    final fileName = file.path.split('/').last;
+    final stats = file.statSync();
+    
+    return {
+      'name': fileName,
+      'path': file.path,
+      'size': stats.size,
+      'modified': stats.modified,
+      'isProjectSpecific': !fileName.contains('backup_'), // backup_ means full backup
+    };
+  }
+
+  // Delete backup file
+  Future<bool> deleteBackupFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error deleting backup file: $e');
+      return false;
+    }
+  }
+}

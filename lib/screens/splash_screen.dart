@@ -52,46 +52,60 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startAnimation() async {
-    // 检查是否是首次启动
-    final preferencesService = PreferencesService();
-    final bool isFirstLaunch = await preferencesService.isFirstLaunch();
+    try {
+      // 检查是否是首次启动
+      final preferencesService = PreferencesService();
+      final bool isFirstLaunch = await preferencesService.isFirstLaunch();
 
-    if (isFirstLaunch) {
-      // 首次启动，显示完整动画
-      await Future.delayed(const Duration(milliseconds: 500));
-      _logoController.forward();
+      if (isFirstLaunch) {
+        // 首次启动，显示完整动画
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) _logoController.forward();
 
-      await Future.delayed(const Duration(milliseconds: 800));
-      _textController.forward();
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) _textController.forward();
 
-      await Future.delayed(const Duration(milliseconds: 2000));
+        await Future.delayed(const Duration(milliseconds: 1500));
+      } else {
+        // 不是首次启动，显示简短动画
+        if (mounted) _logoController.forward();
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
 
-      _navigateToHome();
-    } else {
-      // 不是首次启动，快速跳转
-      await Future.delayed(const Duration(milliseconds: 300));
-      _navigateToHome();
+      if (mounted) {
+        _navigateToHome();
+      }
+    } catch (e) {
+      // 如果出错，直接跳转
+      if (mounted) {
+        _navigateToHome();
+      }
     }
   }
 
   void _navigateToHome() {
+    if (!mounted) return;
+    
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             const HomeScreen(),
-        transitionDuration: const Duration(milliseconds: 800),
+        transitionDuration: const Duration(milliseconds: 600),
+        reverseTransitionDuration: const Duration(milliseconds: 400),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1.0, 0.0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              )),
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOutQuart;
+
+          var tween = Tween(begin: begin, end: end).chain(
+            CurveTween(curve: curve),
+          );
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: FadeTransition(
+              opacity: animation,
               child: child,
             ),
           );
@@ -111,6 +125,8 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -122,83 +138,86 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Spacer(flex: 2),
 
-              // Logo animation
-              ScaleTransition(
-                scale: _logoAnimation,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    FontAwesomeIcons.listCheck,
-                    color: AppTheme.primaryColor,
-                    size: 60,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // Text animation
-              SlideTransition(
-                position: _slideAnimation,
-                child: FadeTransition(
-                  opacity: _textAnimation,
-                  child: const Column(
-                    children: [
-                      Text(
-                        'TodoList',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 2,
+                // Logo animation
+                ScaleTransition(
+                  scale: _logoAnimation,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '高效任务管理助手',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                          letterSpacing: 1,
+                      ],
+                    ),
+                    child: const Icon(
+                      FontAwesomeIcons.listCheck,
+                      color: AppTheme.primaryColor,
+                      size: 60,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Text animation
+                SlideTransition(
+                  position: _slideAnimation,
+                  child: FadeTransition(
+                    opacity: _textAnimation,
+                    child: const Column(
+                      children: [
+                        Text(
+                          'TodoList',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 2,
+                          ),
                         ),
-                      ),
-                    ],
+                        SizedBox(height: 8),
+                        Text(
+                          '高效任务管理助手',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              const Spacer(),
+                const Spacer(flex: 2),
 
-              // Loading indicator
-              const Padding(
-                padding: EdgeInsets.only(bottom: 50),
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                // Loading indicator
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 50),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

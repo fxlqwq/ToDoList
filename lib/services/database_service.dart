@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import '../models/todo.dart' as todo_models;
 import '../models/subtask.dart';
 import '../models/attachment.dart';
+import '../models/project_group.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -56,7 +57,7 @@ class DatabaseService {
 
       return await openDatabase(
         path,
-        version: 2, // 升级版本号以支持新字段
+        version: 3, // 升级版本号以支持项目组
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -67,6 +68,27 @@ class DatabaseService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
+    // 创建项目组表
+    await db.execute('''
+      CREATE TABLE project_groups(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        description TEXT,
+        createdAt INTEGER NOT NULL,
+        colorCode INTEGER NOT NULL DEFAULT ${0xFF2196F3},
+        isDefault INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    // 创建默认项目组
+    await db.insert('project_groups', {
+      'name': '全部任务',
+      'description': '显示所有任务的默认组',
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+      'colorCode': 0xFF2196F3,
+      'isDefault': 1,
+    });
+
     await db.execute('''
       CREATE TABLE todos(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +103,9 @@ class DatabaseService {
         tags TEXT,
         hasReminder INTEGER NOT NULL DEFAULT 0,
         reminderDate INTEGER,
-        useMarkdown INTEGER NOT NULL DEFAULT 0
+        useMarkdown INTEGER NOT NULL DEFAULT 0,
+        projectGroupId INTEGER,
+        FOREIGN KEY (projectGroupId) REFERENCES project_groups (id) ON DELETE SET NULL
       )
     ''');
 
@@ -148,6 +172,37 @@ class DatabaseService {
           FOREIGN KEY (todoId) REFERENCES todos (id) ON DELETE CASCADE
         )
       ''');
+    }
+
+    if (oldVersion < 3) {
+      // 创建项目组表
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS project_groups(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          description TEXT,
+          createdAt INTEGER NOT NULL,
+          colorCode INTEGER NOT NULL DEFAULT ${0xFF2196F3},
+          isDefault INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+
+      // 添加项目组ID字段到todos表
+      try {
+        await db.execute(
+            'ALTER TABLE todos ADD COLUMN projectGroupId INTEGER');
+      } catch (e) {
+        debugPrint('Error adding projectGroupId column: $e');
+      }
+
+      // 创建默认项目组
+      await db.insert('project_groups', {
+        'name': '全部任务',
+        'description': '显示所有任务的默认组',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'colorCode': 0xFF2196F3,
+        'isDefault': 1,
+      });
     }
   }
 
@@ -544,5 +599,172 @@ class DatabaseService {
   Future<void> close() async {
     final db = await database;
     await db.close();
+  }
+
+  // ============= PROJECT GROUP METHODS =============
+
+  // Insert a new project group
+  Future<int> insertProjectGroup(ProjectGroup group) async {
+    final db = await database;
+    return await db.insert('project_groups', group.toMap());
+  }
+
+  // Get all project groups
+  Future<List<ProjectGroup>> getAllProjectGroups() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'project_groups',
+      orderBy: 'isDefault DESC, createdAt ASC',
+    );
+
+    return List.generate(maps.length, (i) {
+      return ProjectGroup.fromMap(maps[i]);
+    });
+  }
+
+  // Get project group by id
+  Future<ProjectGroup?> getProjectGroup(int id) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'project_groups',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isEmpty) return null;
+    return ProjectGroup.fromMap(maps.first);
+  }
+
+  // Get default project group
+  Future<ProjectGroup?> getDefaultProjectGroup() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'project_groups',
+      where: 'isDefault = 1',
+    );
+
+    if (maps.isEmpty) return null;
+    return ProjectGroup.fromMap(maps.first);
+  }
+
+  // Update a project group
+  Future<int> updateProjectGroup(ProjectGroup group) async {
+    final db = await database;
+    return await db.update(
+      'project_groups',
+      group.toMap(),
+      where: 'id = ?',
+      whereArgs: [group.id],
+    );
+  }
+
+  // Delete a project group
+  Future<int> deleteProjectGroup(int id) async {
+    final db = await database;
+    
+    // First, move all todos from this group to the default group
+    final defaultGroup = await getDefaultProjectGroup();
+    if (defaultGroup != null) {
+      await db.update(
+        'todos',
+        {'projectGroupId': defaultGroup.id},
+        where: 'projectGroupId = ?',
+        whereArgs: [id],
+      );
+    }
+    
+    // Then delete the group (but don't allow deleting default group)
+    return await db.delete(
+      'project_groups',
+      where: 'id = ? AND isDefault = 0',
+      whereArgs: [id],
+    );
+  }
+
+  // Get todos by project group
+  Future<List<todo_models.Todo>> getTodosByProjectGroup(int? projectGroupId) async {
+    final db = await database;
+    List<Map<String, dynamic>> maps;
+    
+    if (projectGroupId == null) {
+      // Get todos without project group
+      maps = await db.query(
+        'todos',
+        where: 'projectGroupId IS NULL',
+        orderBy: 'createdAt DESC',
+      );
+    } else {
+      // Get default group to check if we need to show all todos
+      final defaultGroup = await getDefaultProjectGroup();
+      
+      if (defaultGroup != null && projectGroupId == defaultGroup.id) {
+        // For default group, show all todos
+        maps = await db.query('todos', orderBy: 'createdAt DESC');
+      } else {
+        // For specific group, show only those todos
+        maps = await db.query(
+          'todos',
+          where: 'projectGroupId = ?',
+          whereArgs: [projectGroupId],
+          orderBy: 'createdAt DESC',
+        );
+      }
+    }
+
+    List<todo_models.Todo> todos = [];
+
+    for (var map in maps) {
+      final todo = todo_models.Todo.fromMap(map);
+      final subtasks = await getSubtasks(todo.id!);
+      final attachments = await getAttachments(todo.id!);
+
+      todos.add(todo.copyWith(
+        subtasks: subtasks,
+        attachments: attachments,
+      ));
+    }
+
+    return todos;
+  }
+
+  // Get project group statistics
+  Future<Map<String, int>> getProjectGroupStats(int projectGroupId) async {
+    final db = await database;
+    
+    // Get default group to check if we need to count all todos
+    final defaultGroup = await getDefaultProjectGroup();
+    List<Map<String, dynamic>> result;
+    
+    if (defaultGroup != null && projectGroupId == defaultGroup.id) {
+      // For default group, count all todos
+      result = await db.rawQuery('''
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN isCompleted = 1 THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN isCompleted = 0 THEN 1 ELSE 0 END) as pending
+        FROM todos
+      ''');
+    } else {
+      // For specific group, count only those todos
+      result = await db.rawQuery('''
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN isCompleted = 1 THEN 1 ELSE 0 END) as completed,
+          SUM(CASE WHEN isCompleted = 0 THEN 1 ELSE 0 END) as pending
+        FROM todos 
+        WHERE projectGroupId = ?
+      ''', [projectGroupId]);
+    }
+
+    if (result.isNotEmpty) {
+      final row = result.first;
+      return {
+        'total': row['total'] as int,
+        'completed': row['completed'] as int? ?? 0,
+        'pending': row['pending'] as int? ?? 0,
+      };
+    }
+
+    return {'total': 0, 'completed': 0, 'pending': 0};
   }
 }

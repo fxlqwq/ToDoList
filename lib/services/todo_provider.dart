@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/todo.dart';
 import '../models/subtask.dart';
 import '../models/attachment.dart';
+import '../models/project_group.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 
@@ -11,6 +12,8 @@ class TodoProvider with ChangeNotifier {
 
   List<Todo> _todos = [];
   List<Todo> _filteredTodos = [];
+  List<ProjectGroup> _projectGroups = [];
+  ProjectGroup? _selectedProjectGroup;
   String _searchQuery = '';
   Category? _selectedCategory;
   Priority? _selectedPriority;
@@ -21,6 +24,8 @@ class TodoProvider with ChangeNotifier {
   // Getters
   List<Todo> get todos => _filteredTodos;
   List<Todo> get allTodos => _todos;
+  List<ProjectGroup> get projectGroups => _projectGroups;
+  ProjectGroup? get selectedProjectGroup => _selectedProjectGroup;
   String get searchQuery => _searchQuery;
   Category? get selectedCategory => _selectedCategory;
   Priority? get selectedPriority => _selectedPriority;
@@ -44,6 +49,7 @@ class TodoProvider with ChangeNotifier {
 
   // Initialize
   Future<void> initialize() async {
+    await loadProjectGroups();
     await loadTodos();
     await _scheduleNotifications();
   }
@@ -51,14 +57,27 @@ class TodoProvider with ChangeNotifier {
   // Load todos from database
   Future<void> loadTodos() async {
     try {
-      _todos = await _databaseService.getAllTodosWithDetails();
+      if (_selectedProjectGroup == null) {
+        _todos = await _databaseService.getAllTodosWithDetails();
+      } else {
+        _todos = await _databaseService.getTodosByProjectGroup(_selectedProjectGroup!.id);
+      }
       _applyFilters();
       notifyListeners();
     } catch (e) {
       debugPrint('加载任务失败: $e');
       // 回退到基本加载
       try {
-        _todos = await _databaseService.getAllTodos();
+        if (_selectedProjectGroup == null) {
+          _todos = await _databaseService.getAllTodos();
+        } else {
+          // For fallback, just get all todos and filter in memory
+          final allTodos = await _databaseService.getAllTodos();
+          _todos = allTodos.where((todo) => 
+            todo.projectGroupId == _selectedProjectGroup!.id ||
+            (_selectedProjectGroup!.isDefault && todo.projectGroupId == null)
+          ).toList();
+        }
         _applyFilters();
         notifyListeners();
       } catch (e2) {
@@ -575,4 +594,35 @@ class TodoProvider with ChangeNotifier {
       _todos.where((todo) => todo.isOverdue).length,
     );
   }
+
+  // Project Group methods
+  Future<void> loadProjectGroups() async {
+    try {
+      _projectGroups = await _databaseService.getAllProjectGroups();
+      
+      // Set default project group if none selected
+      if (_selectedProjectGroup == null && _projectGroups.isNotEmpty) {
+        _selectedProjectGroup = _projectGroups.firstWhere(
+          (group) => group.isDefault,
+          orElse: () => _projectGroups.first,
+        );
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('加载项目组失败: $e');
+    }
+  }
+
+  void selectProjectGroup(ProjectGroup? group) {
+    _selectedProjectGroup = group;
+    loadTodos(); // Reload todos for the selected project group
+    notifyListeners();
+  }
+
+  // Get statistics for current project group
+  int get currentProjectTotalTodos => _todos.length;
+  int get currentProjectCompletedTodos => _todos.where((todo) => todo.isCompleted).length;
+  int get currentProjectPendingTodos => _todos.where((todo) => !todo.isCompleted).length;
+  int get currentProjectOverdueTodos => _todos.where((todo) => todo.isOverdue).length;
 }

@@ -40,7 +40,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
   bool _hasReminder = false;
   List<String> _tags = [];
 
-  // 新增字段
+    // 新增字段
   bool _useMarkdown = false;
   List<Subtask> _subtasks = [];
   List<Attachment> _attachments = [];
@@ -53,6 +53,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
   void initState() {
     super.initState();
     _attachmentService.init();
+    
     if (_isEditing) {
       _populateFields();
     }
@@ -60,6 +61,7 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
 
   void _populateFields() {
     final todo = widget.todo!;
+    
     _titleController.text = todo.title;
     _descriptionController.text = todo.description;
     _selectedCategory = todo.category;
@@ -1039,6 +1041,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
       );
     }
 
+    final todoProvider = context.read<TodoProvider>();
+    
     final todo = Todo(
       id: _isEditing ? widget.todo!.id : null,
       title: _titleController.text.trim(),
@@ -1054,9 +1058,8 @@ class _AddEditTodoScreenState extends State<AddEditTodoScreen> {
       useMarkdown: _useMarkdown,
       subtasks: _subtasks,
       attachments: _attachments,
+      projectGroupId: todoProvider.selectedProjectGroup?.id,
     );
-
-    final todoProvider = context.read<TodoProvider>();
     final dbService = DatabaseService();
     bool success = false;
     String? errorMessage;

@@ -22,6 +22,8 @@ import 'add_edit_todo_screen.dart';
 import 'notification_settings_screen.dart';
 import 'preferences_test_screen.dart';
 import 'statistics_screen.dart';
+import 'project_group_manager_screen.dart';
+import 'data_backup_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,8 +52,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _fabAnimationController.forward();
 
     // Load todos when screen initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TodoProvider>().loadTodos();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final todoProvider = context.read<TodoProvider>();
+      await todoProvider.loadProjectGroups(); // 首先加载项目组
+      await todoProvider.loadTodos(); // 然后加载任务
       _handleFirstLaunchSetup();
       _loadViewMode(); // 加载保存的视图模式
     });
@@ -377,6 +381,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _handleMenuSelection(String value) async {
     switch (value) {
+      case 'switch_project':
+        _showProjectSwitchDialog();
+        break;
+      case 'project_groups':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ProjectGroupManagerScreen(),
+          ),
+        );
+        break;
+      case 'data_backup':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DataBackupScreen(),
+          ),
+        );
+        break;
       case 'usage_guide':
         await UsageGuideDialog.show(context);
         break;
@@ -407,6 +430,106 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
         break;
     }
+  }
+
+  // 显示项目组切换对话框
+  void _showProjectSwitchDialog() async {
+    final todoProvider = context.read<TodoProvider>();
+    
+    // 刷新项目组列表
+    await todoProvider.loadProjectGroups();
+    
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Consumer<TodoProvider>(
+        builder: (context, provider, child) => AlertDialog(
+          title: const Text(
+            '切换项目组',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: provider.projectGroups.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    '暂无项目组\n请先创建项目组',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: provider.projectGroups.map((group) {
+                      final isSelected = provider.selectedProjectGroup?.id == group.id;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Color(group.colorCode),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        title: Text(
+                          group.name,
+                          style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        subtitle: group.description.isNotEmpty 
+                            ? Text(
+                                group.description,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              )
+                            : null,
+                        trailing: isSelected
+                            ? Icon(
+                                Icons.check_circle,
+                                color: Color(group.colorCode),
+                                size: 20,
+                              )
+                            : null,
+                        onTap: () {
+                          provider.selectProjectGroup(group);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProjectGroupManagerScreen(),
+                  ),
+                ).then((_) {
+                  // 从管理页面返回后刷新项目组
+                  todoProvider.loadProjectGroups();
+                });
+              },
+              child: const Text('管理'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _resetSplashScreen() async {
@@ -459,18 +582,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
             SizedBox(height: 8),
-            Text('版本 1.8.4'),
+            Text('版本 1.8.7'),
             SizedBox(height: 12),
             Text(
-              '1.8.4版本说明：',
+              '1.8.7版本说明：',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
-            Text('• 统计页面优化：修复统计卡片高度过窄问题'),
-            Text('• 显示体验改进：统计数据文字完整显示'),
-            Text('• 随机任务功能：新增主界面随机选择任务功能'),
-            Text('• 代码质量提升：修复所有lint警告，提升性能'),
-            Text('• 工具完善：添加代码行数统计脚本'),
+            Text('• 备份导入修复：解决ZIP格式备份文件导入失败的问题'),
+            Text('• 数据完整性：修复备份文件编码问题，确保数据导入成功'),
+            Text('• 签名稳定性：配置发布密钥，确保应用更新的一致性'),
+            Text('• 调试优化：添加详细的导入日志，便于问题排查'),
+            Text('• 向下兼容：支持旧版JSON格式和新版ZIP格式备份'),
           ],
         ),
         actions: [
@@ -624,6 +747,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onSelected: _handleMenuSelection,
           itemBuilder: (BuildContext context) => [
             const PopupMenuItem<String>(
+              value: 'switch_project',
+              child: Row(
+                children: [
+                  Icon(FontAwesomeIcons.arrowRightArrowLeft, size: 16),
+                  SizedBox(width: 8),
+                  Text('切换项目组'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
+              value: 'project_groups',
+              child: Row(
+                children: [
+                  Icon(FontAwesomeIcons.folderOpen, size: 16),
+                  SizedBox(width: 8),
+                  Text('项目组管理'),
+                ],
+              ),
+            ),
+            const PopupMenuItem<String>(
+              value: 'data_backup',
+              child: Row(
+                children: [
+                  Icon(FontAwesomeIcons.database, size: 16),
+                  SizedBox(width: 8),
+                  Text('数据备份'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem<String>(
               value: 'statistics',
               child: Row(
                 children: [
@@ -697,23 +852,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '我的任务',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
                   Consumer<TodoProvider>(
                     builder: (context, todoProvider, child) {
-                      return Text(
-                        '${todoProvider.pendingTodos} 个待办，${todoProvider.completedTodos} 个已完成',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 14,
-                        ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            todoProvider.selectedProjectGroup?.name ?? '我的任务',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${todoProvider.pendingTodos} 个待办，${todoProvider.completedTodos} 个已完成',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
