@@ -34,22 +34,6 @@ flutter run
 
 ### 发布构建
 
-#### 准备签名密钥（首次）
-```bash
-# 创建 keystore 目录
-mkdir -p android/keystore
-
-# 生成发布密钥（请妥善保管密码！）
-keytool -genkey -v -keystore android/keystore/release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias release
-
-# 创建密钥配置文件
-cat > android/key.properties << EOF
-storePassword=你的密钥库密码
-keyPassword=你的密钥密码
-keyAlias=release
-storeFile=keystore/release-key.jks
-EOF
-```
 
 #### 构建发布版本
 ```bash
@@ -64,12 +48,11 @@ flutter build appbundle --release
 # Bundle: build/app/outputs/bundle/release/app-release.aab
 ```
 
-#### 自动化构建脚本
-项目提供了自动化构建脚本 `build-release.sh`：
+### 配置签名
 ```bash
-chmod +x build-release.sh
-./build-release.sh
+/opt/android-sdk/build-tools/35.0.0/apksigner verify --print-certs build/app/outputs/flutter-apk/app-release.apk
 ```
+
 
 ### 版本管理
 
